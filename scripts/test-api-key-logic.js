@@ -11,25 +11,25 @@
 
 // Test 1: Environment variables only
 console.log('Test 1: Environment variables only');
-process.env.RECHARGE_ACCESS_TOKEN = 'env_token_12345';
+process.env.RECHARGE_ADMIN_TOKEN = 'env_token_12345';
 process.env.RECHARGE_STOREFRONT_DOMAIN = 'test-shop.myshopify.com';
 
 try {
   // Simulate server logic
   const storeUrl = process.env.RECHARGE_STOREFRONT_DOMAIN;
-  const defaultAccessToken = process.env.RECHARGE_ACCESS_TOKEN;
+  const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
-  // Tool call without access_token or store_url parameters
-  const toolAccessToken = undefined;
+  // Tool call without admin_token or store_url parameters
+  const toolAdminToken = undefined;
   const toolStoreUrl = undefined;
-  const accessToken = toolAccessToken || defaultAccessToken;
+  const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
   
-  if (!accessToken || !finalStoreUrl) {
-    throw new Error('No API access token available');
+  if (!adminToken || !finalStoreUrl) {
+    throw new Error('No admin token available');
   }
   
-  console.log(`✅ Using token: ${accessToken} (from environment)`);
+  console.log(`✅ Using token: ${adminToken} (from environment)`);
   console.log(`✅ Using store URL: ${finalStoreUrl} (from environment)`);
 } catch (error) {
   console.log(`❌ Error: ${error.message}`);
@@ -39,43 +39,43 @@ try {
 console.log('\nTest 2: Tool parameters take precedence');
 try {
   const storeUrl = process.env.RECHARGE_STOREFRONT_DOMAIN;
-  const defaultAccessToken = process.env.RECHARGE_ACCESS_TOKEN;
+  const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
-  // Tool call WITH access_token and store_url parameters
-  const toolAccessToken = 'tool_token_67890';
+  // Tool call WITH admin_token and store_url parameters
+  const toolAdminToken = 'tool_token_67890';
   const toolStoreUrl = 'tool-shop.myshopify.com';
-  const accessToken = toolAccessToken || defaultAccessToken;
+  const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
   
-  if (!accessToken || !finalStoreUrl) {
-    throw new Error('No API access token available');
+  if (!adminToken || !finalStoreUrl) {
+    throw new Error('No admin token available');
   }
   
-  console.log(`✅ Using token: ${accessToken} (from tool parameter)`);
+  console.log(`✅ Using token: ${adminToken} (from tool parameter)`);
   console.log(`✅ Using store URL: ${finalStoreUrl} (from tool parameter)`);
 } catch (error) {
   console.log(`❌ Error: ${error.message}`);
 }
 
-// Test 3: No token or store URL available anywhere
-console.log('\nTest 3: No token or store URL available anywhere');
-delete process.env.RECHARGE_ACCESS_TOKEN;
+// Test 3: No admin token or store URL available anywhere
+console.log('\nTest 3: No admin token or store URL available anywhere');
+delete process.env.RECHARGE_ADMIN_TOKEN;
 delete process.env.RECHARGE_STOREFRONT_DOMAIN;
 try {
   const storeUrl = process.env.RECHARGE_STOREFRONT_DOMAIN;
-  const defaultAccessToken = process.env.RECHARGE_ACCESS_TOKEN;
+  const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
-  // Tool call without access_token or store_url parameters
-  const toolAccessToken = undefined;
+  // Tool call without admin_token or store_url parameters
+  const toolAdminToken = undefined;
   const toolStoreUrl = undefined;
-  const accessToken = toolAccessToken || defaultAccessToken;
+  const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
   
-  if (!accessToken || !finalStoreUrl) {
-    throw new Error('No API access token or store URL available. Please provide parameters in your tool call or set environment variables.');
+  if (!adminToken || !finalStoreUrl) {
+    throw new Error('No admin token or store URL available. Please provide parameters in your tool call or set environment variables.');
   }
   
-  console.log(`✅ Using token: ${accessToken}`);
+  console.log(`✅ Using token: ${adminToken}`);
   console.log(`✅ Using store URL: ${finalStoreUrl}`);
 } catch (error) {
   console.log(`✅ Expected error: ${error.message}`);
@@ -83,23 +83,23 @@ try {
 
 // Test 4: Empty string token and store URL (should be treated as not set)
 console.log('\nTest 4: Empty string token and store URL handling');
-process.env.RECHARGE_ACCESS_TOKEN = '';
+process.env.RECHARGE_ADMIN_TOKEN = '';
 process.env.RECHARGE_STOREFRONT_DOMAIN = '';
 try {
   const storeUrl = process.env.RECHARGE_STOREFRONT_DOMAIN;
-  const defaultAccessToken = process.env.RECHARGE_ACCESS_TOKEN;
+  const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
-  // Tool call without access_token or store_url parameters
-  const toolAccessToken = undefined;
+  // Tool call without admin_token or store_url parameters
+  const toolAdminToken = undefined;
   const toolStoreUrl = undefined;
-  const accessToken = toolAccessToken || defaultAccessToken;
+  const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
   
-  if (!accessToken || !finalStoreUrl) {
-    throw new Error('No API access token or store URL available. Please provide parameters in your tool call or set environment variables.');
+  if (!adminToken || !finalStoreUrl) {
+    throw new Error('No admin token or store URL available. Please provide parameters in your tool call or set environment variables.');
   }
   
-  console.log(`✅ Using token: ${accessToken}`);
+  console.log(`✅ Using token: ${adminToken}`);
   console.log(`✅ Using store URL: ${finalStoreUrl}`);
 } catch (error) {
   console.log(`✅ Expected error: ${error.message}`);
@@ -107,23 +107,23 @@ try {
 
 // Test 5: Tool parameters override empty environment
 console.log('\nTest 5: Tool parameters override empty environment');
-process.env.RECHARGE_ACCESS_TOKEN = '';
+process.env.RECHARGE_ADMIN_TOKEN = '';
 process.env.RECHARGE_STOREFRONT_DOMAIN = '';
 try {
   const storeUrl = process.env.RECHARGE_STOREFRONT_DOMAIN;
-  const defaultAccessToken = process.env.RECHARGE_ACCESS_TOKEN;
+  const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
-  // Tool call WITH access_token and store_url parameters
-  const toolAccessToken = 'tool_override_token';
+  // Tool call WITH admin_token and store_url parameters
+  const toolAdminToken = 'tool_override_token';
   const toolStoreUrl = 'override-shop.myshopify.com';
-  const accessToken = toolAccessToken || defaultAccessToken;
+  const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
   
-  if (!accessToken || !finalStoreUrl) {
-    throw new Error('No API access token available');
+  if (!adminToken || !finalStoreUrl) {
+    throw new Error('No admin token available');
   }
   
-  console.log(`✅ Using token: ${accessToken} (tool parameter overrides empty env)`);
+  console.log(`✅ Using token: ${adminToken} (tool parameter overrides empty env)`);
   console.log(`✅ Using store URL: ${finalStoreUrl} (tool parameter overrides empty env)`);
 } catch (error) {
   console.log(`❌ Error: ${error.message}`);
@@ -174,7 +174,7 @@ console.log('\n🎉 API Key and Store URL Logic Tests Complete');
 console.log('\nSummary:');
 console.log('- Environment variables used when no tool parameters provided ✅');
 console.log('- Tool parameters take precedence over environment variables ✅');
-console.log('- Proper error when no token or store URL available anywhere ✅');
+console.log('- Proper error when no admin token or store URL available anywhere ✅');
 console.log('- Empty string tokens and store URLs handled correctly ✅');
 console.log('- Tool parameters override empty environment ✅');
 console.log('- URL format validation works correctly ✅');

@@ -17,7 +17,7 @@
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "test": "npm run lint && npm run validate && npm run test:api-keys",
     "test:full": "chmod +x scripts/test.sh && ./scripts/test.sh",
-    "lint": "node -e \"const fs = require('fs'); const path = require('path'); function checkFiles(dir) { if (!fs.existsSync(dir)) return; const files = fs.readdirSync(dir, { withFileTypes: true }); for (const file of files) { const fullPath = path.join(dir, file.name); if (file.isDirectory()) { checkFiles(fullPath); } else if (file.name.endsWith('.js')) { try { require('child_process').execSync('node --check \\\"' + fullPath + '\\\"', { stdio: 'inherit' }); } catch (e) { console.error('Syntax error in:', fullPath); process.exit(1); } } } } checkFiles('src'); checkFiles('scripts');\" && echo '✅ Lint check passed'",
+    "lint": "node -e \"const fs = require('fs'); const path = require('path'); function checkFiles(dir) { if (!fs.existsSync(dir)) return; const files = fs.readdirSync(dir, { withFileTypes: true }); for (const file of files) { const fullPath = path.join(dir, file.name); if (file.isDirectory()) { checkFiles(fullPath); } else if (file.name.endsWith('.js')) { try { require('child_process').execSync('node --check \\\"' + fullPath.replace(/\\\\/g, '/') + '\\\"', { stdio: 'inherit' }); } catch (e) { console.error('Syntax error in:', fullPath); process.exit(1); } } } } checkFiles('src'); checkFiles('scripts');\" && echo '✅ Lint check passed'",
     "validate": "npm run lint && node -c src/server.js && echo \"✅ Syntax validation passed\" && npm run coverage",
     "debug": "DEBUG=true node src/server.js",
     "clean": "rm -rf node_modules package-lock.json && npm install",

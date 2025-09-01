@@ -247,10 +247,10 @@ async function main() {
     
     // Validate required dependencies
     try {
-      require('@modelcontextprotocol/sdk/server/index.js');
-      require('zod');
-      require('axios');
-      require('dotenv');
+      await import('@modelcontextprotocol/sdk/server/index.js');
+      await import('zod');
+      await import('axios');
+      await import('dotenv');
     } catch (error) {
       console.error('[FATAL] Missing required dependencies. Please run: npm install');
       console.error('[DEBUG] Missing dependency:', error.message);
@@ -262,11 +262,11 @@ async function main() {
       console.error('[WARNING] No environment variables configured. Tools will require parameters for each call.');
     }
     
-    if (process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
+    if (process.env.RECHARGE_STOREFRONT_DOMAIN && process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
       console.error('[WARNING] Please update RECHARGE_STOREFRONT_DOMAIN with your actual domain');
     }
     
-    if (process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
+    if (process.env.RECHARGE_ADMIN_TOKEN && process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
       console.error('[WARNING] Please update RECHARGE_ADMIN_TOKEN with your actual admin token');
     }
     

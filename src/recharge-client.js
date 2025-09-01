@@ -221,37 +221,54 @@ export class RechargeClient {
   }
 
   /**
-   * Get customer by email (requires admin token)
+   * Make admin API request
    */
-  async getCustomerByEmail(email) {
+  async makeAdminRequest(method, endpoint, data = null, params = null) {
     if (!this.adminToken) {
       throw new Error(
-        'Admin token required for customer lookup. Please provide admin_token parameter or set RECHARGE_ADMIN_TOKEN environment variable.'
+        'Admin token required for this operation. Please provide admin_token parameter or set RECHARGE_ADMIN_TOKEN environment variable.'
       );
     }
 
+    const config = {
+      method,
+      url: endpoint,
+      headers: {
+        'X-Recharge-Access-Token': this.adminToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    };
+    
+    if (data) {
+      config.data = data;
+    }
+    
+    if (params) {
+      config.params = params;
+    }
+    
     try {
-      const response = await this.adminApi.get('/customers', {
-        params: { email },
-        headers: {
-          'X-Recharge-Access-Token': this.adminToken,
-          'X-Recharge-Version': '2021-11',
-        },
-      });
+      const response = await this.adminApi.request(config);
+      return response.data;
+    } catch (error) {
+      handleAPIError(error);
+    }
+  }
+
+  /**
+   * Get customer by email (requires admin token)
+   */
+  async getCustomerByEmail(email) {
+    try {
+      const response = await this.makeAdminRequest('GET', '/customers', null, { email });
       
-      if (!response.data.customers || response.data.customers.length === 0) {
+      if (!response.customers || response.customers.length === 0) {
         throw new Error(`Customer not found with email: ${email}`);
       }
       
-      return response.data.customers[0];
+      return response.customers[0];
     } catch (error) {
-      // Handle case where customer lookup fails due to expired/invalid admin token
-      if (error.response?.status === 401) {
-        throw new Error(
-          'Admin token authentication failed. Please verify your admin token is valid and has not expired.'
-        );
-      }
-      handleAPIError(error);
+      throw error;
     }
   }
 
@@ -259,37 +276,17 @@ export class RechargeClient {
    * Create customer session by ID (requires admin token)
    */
   async createCustomerSessionById(customerId, options = {}) {
-    if (!this.adminToken) {
-      throw new Error(
-        'Admin token required for session creation. Please provide admin_token parameter or set RECHARGE_ADMIN_TOKEN environment variable.'
-      );
-    }
-
     try {
       const sessionData = {
         customer_id: parseInt(customerId),
         ...options
       };
       
-      const response = await this.adminApi.post(`/customers/${customerId}/sessions`, sessionData, {
-        headers: {
-          'X-Recharge-Access-Token': this.adminToken,
-          'X-Recharge-Version': '2021-11',
-        },
-      });
+      const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, sessionData);
       
-      return response.data;
+      return response;
     } catch (error) {
-      // Handle case where session creation fails due to invalid customer ID
-      if (error.response?.status === 404) {
-        throw new Error(`Customer not found with ID: ${customerId}. Please verify the customer ID exists.`);
-      }
-      if (error.response?.status === 401) {
-        throw new Error(
-          'Admin token authentication failed. Please verify your admin token is valid and has not expired.'
-        );
-      }
-      handleAPIError(error);
+      throw error;
     }
   }
 

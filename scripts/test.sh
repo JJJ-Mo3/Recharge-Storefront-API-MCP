@@ -125,7 +125,7 @@ if [ -f .env ]; then
     if run_test "Environment variables check" "node -e \"
         require('dotenv').config();
         const domain = process.env.RECHARGE_STOREFRONT_DOMAIN;
-        const token = process.env.RECHARGE_ACCESS_TOKEN;
+        const adminToken = process.env.RECHARGE_ADMIN_TOKEN;
         
         if (!domain) {
             console.error('RECHARGE_STOREFRONT_DOMAIN not set');
@@ -143,7 +143,7 @@ if [ -f .env ]; then
         }
         
         console.log('Domain configured:', domain);
-        console.log('Token configured:', token ? 'Yes' : 'No');
+        console.log('Admin token configured:', process.env.RECHARGE_ADMIN_TOKEN ? 'Yes' : 'No');
     \"" "optional"; then
         print_status "Environment configuration is valid"
     fi
