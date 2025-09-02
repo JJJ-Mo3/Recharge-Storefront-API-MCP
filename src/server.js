@@ -133,6 +133,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
     
+    // Validate store URL is not placeholder
+    if (storeUrl === 'your-shop.myshopify.com') {
+      throw new Error(
+        'Please configure your actual store URL. The placeholder "your-shop.myshopify.com" is not valid.\n' +
+        'Update RECHARGE_STOREFRONT_DOMAIN in your .env file or provide store_url parameter.'
+      );
+    }
+    
     // Validate store URL format
     let domain;
     try {
@@ -152,6 +160,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         'Store URL must be a Shopify domain ending with .myshopify.com\n' +
         'Example: your-shop.myshopify.com'
       );
+    }
+    
+    // Validate admin token is not placeholder when needed for customer operations
+    if ((validatedArgs.customer_id || validatedArgs.customer_email) && !sessionToken) {
+      if (!adminToken) {
+        throw new Error(
+          'Admin token required for customer operations. Please provide admin_token parameter or set RECHARGE_ADMIN_TOKEN environment variable.'
+        );
+      }
+      
+      if (adminToken === 'your_admin_token_here') {
+        throw new Error(
+          'Please configure your actual admin token. The placeholder "your_admin_token_here" is not valid.\n' +
+          'Update RECHARGE_ADMIN_TOKEN in your .env file or provide admin_token parameter.'
+        );
+      }
     }
     
     // Create client with available tokens

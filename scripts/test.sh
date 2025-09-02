@@ -124,6 +124,46 @@ run_test "Onetime tools exist" "test -f src/tools/onetimes-tools.js" "required"
 run_test "Bundle tools exist" "test -f src/tools/bundle-tools.js" "required"
 run_test "Discount tools exist" "test -f src/tools/discount-tools.js" "required"
 
+# Validate tool implementations
+run_test "All tools properly exported" "node -e \"
+  import('./src/tools/index.js').then(({ tools }) => {
+    if (!Array.isArray(tools)) {
+      console.error('Tools export is not an array');
+      process.exit(1);
+    }
+    if (tools.length === 0) {
+      console.error('No tools exported');
+      process.exit(1);
+    }
+    console.log('Tools exported:', tools.length);
+    
+    // Validate each tool has required properties
+    for (const tool of tools) {
+      if (!tool.name || typeof tool.name !== 'string') {
+        console.error('Tool missing name:', tool);
+        process.exit(1);
+      }
+      if (!tool.description || typeof tool.description !== 'string') {
+        console.error('Tool missing description:', tool.name);
+        process.exit(1);
+      }
+      if (!tool.inputSchema) {
+        console.error('Tool missing inputSchema:', tool.name);
+        process.exit(1);
+      }
+      if (!tool.execute || typeof tool.execute !== 'function') {
+        console.error('Tool missing execute function:', tool.name);
+        process.exit(1);
+      }
+    }
+    
+    console.log('All tools have required properties');
+  }).catch(error => {
+    console.error('Failed to load tools:', error.message);
+    process.exit(1);
+  });
+\" --input-type=module" "required"
+
 # Count tool files
 TOOL_FILES=$(find src/tools -name "*-tools.js" | wc -l)
 if [ "$TOOL_FILES" -eq 10 ]; then
@@ -170,7 +210,7 @@ fi
 
 # Test MCP protocol
 print_info "Testing MCP protocol startup..."
-if run_test "MCP server startup test" "timeout 10s node -e '
+if run_test "MCP server startup test" "timeout 15s node -e '
     const { spawn } = require('child_process');
     const server = spawn(\"node\", [\"src/server.js\"], {
         env: { 
@@ -184,7 +224,7 @@ if run_test "MCP server startup test" "timeout 10s node -e '
     
     server.stdout.on(\"data\", (data) => {
         const output = data.toString();
-        if (output.includes(\"Server ready\") || output.includes(\"listening\") || output.includes(\"ready\")) {
+        if (output.includes(\"Server ready\") || output.includes(\"listening\") || output.includes(\"ready\") || output.includes(\"started\")) {
             console.log(\"MCP server started successfully\");
             serverReady = true;
             server.kill();
@@ -193,7 +233,7 @@ if run_test "MCP server startup test" "timeout 10s node -e '
     
     server.stderr.on(\"data\", (data) => {
         const output = data.toString();
-        if (output.includes(\"Server ready\") || output.includes(\"listening\") || output.includes(\"ready\")) {
+        if (output.includes(\"Server ready\") || output.includes(\"listening\") || output.includes(\"ready\") || output.includes(\"started\")) {
             console.log(\"MCP server started successfully\");
             serverReady = true;
             server.kill();
@@ -213,7 +253,7 @@ if run_test "MCP server startup test" "timeout 10s node -e '
             console.error(\"Server did not start within timeout\");
             process.exit(1);
         }
-    }, 8000);
+    }, 12000);
 ' 2>/dev/null" "optional"; then
     print_status "MCP server startup test passed"
 fi

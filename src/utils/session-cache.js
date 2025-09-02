@@ -37,6 +37,11 @@ export class SessionCache {
       throw new Error('Session token cannot be empty');
     }
     
+    // Validate customer ID format
+    if (customerId.trim() === '') {
+      throw new Error('Customer ID cannot be empty');
+    }
+    
     this.sessions.set(customerId, {
       token: sessionToken,
       email
@@ -44,6 +49,11 @@ export class SessionCache {
 
     // Cache email -> customer_id mapping if email provided
     if (email && typeof email === 'string' && email.trim() !== '') {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        throw new Error(`Invalid email format for caching: ${email}`);
+      }
       this.emailToCustomerId.set(email, customerId);
     }
 

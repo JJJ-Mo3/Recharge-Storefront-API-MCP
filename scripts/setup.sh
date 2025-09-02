@@ -136,7 +136,12 @@ if [ -f .env ]; then
         if [ "$domain" = "your-shop.myshopify.com" ] || [ -z "$domain" ]; then
             print_warning "Please update RECHARGE_STOREFRONT_DOMAIN with your actual domain"
         else
+            # Validate domain format
+            if [[ ! "$domain" =~ \.myshopify\.com$ ]]; then
+                print_warning "Domain should end with .myshopify.com: $domain"
+            else
             print_status "Domain configured: $domain"
+            fi
         fi
     else
         print_warning "RECHARGE_STOREFRONT_DOMAIN not found in .env file"
@@ -147,7 +152,12 @@ if [ -f .env ]; then
         if [ "$token" = "your_admin_token_here" ] || [ -z "$token" ]; then
             print_warning "Please update RECHARGE_ADMIN_TOKEN with your actual admin token"
         else
+            # Basic token validation
+            if [ ${#token} -lt 10 ]; then
+                print_warning "Admin token appears to be too short: ${#token} characters"
+            else
             print_status "Admin token configured"
+            fi
         fi
     else
         print_warning "RECHARGE_ADMIN_TOKEN not found in .env file"

@@ -406,3 +406,70 @@ export function sanitizeErrorMessage(message) {
     .replace(/Bearer\s+[a-zA-Z0-9_-]+/gi, 'Bearer ***')
     .replace(/X-Recharge-Access-Token[:\s=]+[a-zA-Z0-9_-]+/gi, 'X-Recharge-Access-Token: ***');
 }
+
+/**
+ * Validate that a value is a valid positive integer
+ * @param {any} value - Value to validate
+ * @param {string} fieldName - Name of the field for error messages
+ * @returns {number} Validated integer
+ * @throws {Error} If value is not a valid positive integer
+ */
+export function validatePositiveInteger(value, fieldName) {
+  if (value === undefined || value === null) {
+    throw new Error(`${fieldName} is required`);
+  }
+  
+  const num = Number(value);
+  if (isNaN(num) || !Number.isInteger(num) || num <= 0) {
+    throw new Error(`${fieldName} must be a positive integer, got: ${value}`);
+  }
+  
+  return num;
+}
+
+/**
+ * Validate that a value is a valid non-negative integer
+ * @param {any} value - Value to validate
+ * @param {string} fieldName - Name of the field for error messages
+ * @returns {number} Validated integer
+ * @throws {Error} If value is not a valid non-negative integer
+ */
+export function validateNonNegativeInteger(value, fieldName) {
+  if (value === undefined || value === null) {
+    throw new Error(`${fieldName} is required`);
+  }
+  
+  const num = Number(value);
+  if (isNaN(num) || !Number.isInteger(num) || num < 0) {
+    throw new Error(`${fieldName} must be a non-negative integer, got: ${value}`);
+  }
+  
+  return num;
+}
+
+/**
+ * Validate date format and return normalized date string
+ * @param {string} dateValue - Date value to validate
+ * @param {string} fieldName - Name of the field for error messages
+ * @returns {string} Validated and normalized date string
+ * @throws {Error} If date is invalid
+ */
+export function validateDateFormat(dateValue, fieldName) {
+  if (!dateValue || typeof dateValue !== 'string') {
+    throw new Error(`${fieldName} must be a valid date string`);
+  }
+  
+  // Allow both YYYY-MM-DD and ISO datetime formats
+  const dateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+  if (!dateRegex.test(dateValue.trim())) {
+    throw new Error(`Invalid date format for ${fieldName}. Expected YYYY-MM-DD or ISO datetime format`);
+  }
+  
+  // Validate that the date is actually valid
+  const dateObj = new Date(dateValue.trim());
+  if (isNaN(dateObj.getTime())) {
+    throw new Error(`Invalid date value for ${fieldName}: ${dateValue}`);
+  }
+  
+  return dateValue.trim();
+}
