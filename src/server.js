@@ -162,6 +162,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
     
+    // Validate domain is not a placeholder
+    if (domain === 'your-shop.myshopify.com' || domain === 'test-shop.myshopify.com') {
+      throw new Error(
+        `Please configure your actual store domain. The placeholder "${domain}" is not valid.\n` +
+        'Update RECHARGE_STOREFRONT_DOMAIN in your .env file or provide store_url parameter.'
+      );
+    }
+    
     // Validate admin token is not placeholder when needed for customer operations
     if ((validatedArgs.customer_id || validatedArgs.customer_email) && !sessionToken) {
       if (!adminToken) {
@@ -170,7 +178,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         );
       }
       
-      if (adminToken === 'your_admin_token_here') {
+      if (adminToken === 'your_admin_token_here' || adminToken === 'your_admin_api_token_here') {
         throw new Error(
           'Please configure your actual admin token. The placeholder "your_admin_token_here" is not valid.\n' +
           'Update RECHARGE_ADMIN_TOKEN in your .env file or provide admin_token parameter.'

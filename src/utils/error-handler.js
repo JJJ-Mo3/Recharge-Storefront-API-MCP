@@ -51,7 +51,7 @@ export function handleAPIError(error) {
     const { status, data } = error.response;
     
     // Handle redirect errors specially
-    if (error.isRedirect) {
+    if (error.isRedirect || (status >= 300 && status < 400)) {
       const details = {
         location: error.response.headers.location,
         originalUrl: error.originalUrl || error.config?.url,
@@ -65,7 +65,12 @@ export function handleAPIError(error) {
         console.error(`[DEBUG] Redirect error details:`, JSON.stringify(details, null, 2));
       }
       
-      throw new RechargeAPIError(error.message, status, 'REDIRECT_ERROR', details);
+      throw new RechargeAPIError(
+        `API returned redirect (${status}). This usually indicates incorrect endpoint or authentication issues.`,
+        status, 
+        'REDIRECT_ERROR', 
+        details
+      );
     }
     
     // Extract error message with fallback chain
@@ -404,7 +409,9 @@ export function sanitizeErrorMessage(message) {
     .replace(/password[s]?[:\s=]+[^\s]+/gi, 'password=***')
     .replace(/secret[s]?[:\s=]+[^\s]+/gi, 'secret=***')
     .replace(/Bearer\s+[a-zA-Z0-9_-]+/gi, 'Bearer ***')
-    .replace(/X-Recharge-Access-Token[:\s=]+[a-zA-Z0-9_-]+/gi, 'X-Recharge-Access-Token: ***');
+    .replace(/X-Recharge-Access-Token[:\s=]+[a-zA-Z0-9_-]+/gi, 'X-Recharge-Access-Token: ***')
+    .replace(/st_[a-zA-Z0-9_-]+/gi, 'st_***')
+    .replace(/sk_[a-zA-Z0-9_-]+/gi, 'sk_***');
 }
 
 /**
