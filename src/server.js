@@ -163,9 +163,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
     
     // Validate domain is not a placeholder
-    if (domain === 'your-shop.myshopify.com' || domain === 'test-shop.myshopify.com') {
+    if (domain === 'your-shop.myshopify.com') {
       throw new Error(
-        `Please configure your actual store domain. The placeholder "${domain}" is not valid.\n` +
+        'Please configure your actual store domain. The placeholder "your-shop.myshopify.com" is not valid.\n' +
         'Update RECHARGE_STOREFRONT_DOMAIN in your .env file or provide store_url parameter.'
       );
     }

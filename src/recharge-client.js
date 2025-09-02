@@ -209,7 +209,7 @@ export class RechargeClient {
     
     const config = {
       method: method.toUpperCase(),
-      url: `/tools/recurring${endpoint}`,
+      url: endpoint,
       headers: {
         'X-Recharge-Access-Token': sessionToken,
         'X-Recharge-Version': '2021-11',
@@ -251,15 +251,9 @@ export class RechargeClient {
         // Retry with new session
         try {
           const newSessionToken = await this.getOrCreateSessionToken(customerId, customerEmail);
-          const retryConfig = {
-            ...config,
-            headers: {
-              ...config.headers,
-              'X-Recharge-Access-Token': newSessionToken,
-            }
-          };
+          config.headers['X-Recharge-Access-Token'] = newSessionToken;
           
-          const retryResponse = await this.storefrontApi.request(retryConfig);
+          const retryResponse = await this.storefrontApi.request(config);
           
           if (!retryResponse || !retryResponse.data) {
             throw new Error('Invalid response from API on retry');
@@ -339,14 +333,14 @@ export class RechargeClient {
 
   // Customer Management Methods
   async getCustomer(customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/customers', null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', '/customer', null, null, customerId, customerEmail);
   }
 
   async updateCustomer(updateData, customerId = null, customerEmail = null) {
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', '/customers', updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', '/customer', updateData, null, customerId, customerEmail);
   }
 
   async getCustomerByEmail(email) {
@@ -449,7 +443,7 @@ export class RechargeClient {
     if (!date) {
       throw new Error('Date is required for skipping subscription');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/skip`, { date }, null, customerId, customerEmail);
   }
 
   async unskipSubscription(subscriptionId, date, customerId = null, customerEmail = null) {
@@ -459,7 +453,7 @@ export class RechargeClient {
     if (!date) {
       throw new Error('Date is required for unskipping subscription');
     }
-    return await this.makeRequest('DELETE', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/unskip`, { date }, null, customerId, customerEmail);
   }
 
   async swapSubscription(subscriptionId, swapData, customerId = null, customerEmail = null) {
@@ -469,25 +463,21 @@ export class RechargeClient {
     if (!swapData || typeof swapData !== 'object') {
       throw new Error('Swap data is required');
     }
-    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, swapData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, swapData, null, customerId, customerEmail);
   }
 
   async cancelSubscription(subscriptionId, cancelData = {}, customerId = null, customerEmail = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
-    const cancelPayload = {
-      status: 'CANCELLED',
-      ...cancelData
-    };
-    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, cancelPayload, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, cancelData, null, customerId, customerEmail);
   }
 
   async activateSubscription(subscriptionId, customerId = null, customerEmail = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
-    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, { status: 'ACTIVE' }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/activate`, null, null, customerId, customerEmail);
   }
 
   async setNextChargeDate(subscriptionId, date, customerId = null, customerEmail = null) {
@@ -497,7 +487,7 @@ export class RechargeClient {
     if (!date) {
       throw new Error('Date is required');
     }
-    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, { next_charge_scheduled_at: date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail);
   }
 
   // Address Management Methods
@@ -696,13 +686,13 @@ export class RechargeClient {
     if (!discountCode || typeof discountCode !== 'string' || discountCode.trim() === '') {
       throw new Error('Discount code is required');
     }
-    return await this.makeRequest('POST', '/discounts/apply', { discount_code: discountCode.trim() }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/discounts', { discount_code: discountCode.trim() }, null, customerId, customerEmail);
   }
 
   async removeDiscount(discountId, customerId = null, customerEmail = null) {
     if (!discountId) {
       throw new Error('Discount ID is required');
     }
-    return await this.makeRequest('POST', `/discounts/${discountId}/remove`, null, null, customerId, customerEmail);
+    return await this.makeRequest('DELETE', `/discounts/${discountId}`, null, null, customerId, customerEmail);
   }
 }
