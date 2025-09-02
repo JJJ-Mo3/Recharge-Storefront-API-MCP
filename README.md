@@ -562,7 +562,7 @@ DEBUG=true
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `RECHARGE_STOREFRONT_DOMAIN` | Yes* | Your Shopify domain | `shop.myshopify.com` |
-| `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `mystore_abc123` |
+| `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `your_admin_api_token_here` |
 | `RECHARGE_SESSION_TOKEN` | No | Default customer session token | `st_abc123` |
 | `MCP_SERVER_NAME` | No | Server identification | `recharge-mcp` |
 | `MCP_SERVER_VERSION` | No | Server version | `1.0.0` |
