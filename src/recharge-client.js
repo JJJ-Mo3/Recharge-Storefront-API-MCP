@@ -155,6 +155,9 @@ export class RechargeClient {
         // Cache the new session
         this.sessionCache.setSessionToken(finalCustomerId, newToken, customerEmail);
         
+        // Update the client's session token for future requests
+        this.sessionToken = newToken;
+        
         return newToken;
       } catch (error) {
         if (process.env.DEBUG === 'true') {
