@@ -277,7 +277,7 @@ export class RechargeClient {
       ...options
     };
     
-    const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, sessionData);
+    const response = await this.makeAdminRequest('POST', '/customer_sessions', sessionData);
     
     return response;
   }

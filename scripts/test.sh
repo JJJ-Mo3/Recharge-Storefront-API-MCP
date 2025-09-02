@@ -96,6 +96,9 @@ run_test "Package.json validation" "node -e \"require('./package.json')\"" "requ
 # Test environment file template
 run_test "Environment template check" "test -f .env.example" "required"
 
+# Test main entry point
+run_test "Main entry point exists" "test -f index.js" "required"
+
 # Test Docker configuration
 run_test "Dockerfile syntax check" "test -f Dockerfile" "optional"
 
@@ -143,7 +146,7 @@ if [ -f .env ]; then
         }
         
         console.log('Domain configured:', domain);
-        console.log('Admin token configured:', process.env.RECHARGE_ADMIN_TOKEN ? 'Yes' : 'No');
+        console.log('Admin token configured:', adminToken ? 'Yes' : 'No');
     \"" "optional"; then
         print_status "Environment configuration is valid"
     fi

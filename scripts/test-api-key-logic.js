@@ -11,7 +11,7 @@
 
 // Test 1: Environment variables only
 console.log('Test 1: Environment variables only');
-process.env.RECHARGE_ADMIN_TOKEN = 'env_token_12345';
+process.env.RECHARGE_ADMIN_TOKEN = 'env_admin_token_12345';
 process.env.RECHARGE_STOREFRONT_DOMAIN = 'test-shop.myshopify.com';
 
 try {
@@ -42,7 +42,7 @@ try {
   const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
   // Tool call WITH admin_token and store_url parameters
-  const toolAdminToken = 'tool_token_67890';
+  const toolAdminToken = 'tool_admin_token_67890';
   const toolStoreUrl = 'tool-shop.myshopify.com';
   const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;
@@ -114,7 +114,7 @@ try {
   const defaultAdminToken = process.env.RECHARGE_ADMIN_TOKEN;
   
   // Tool call WITH admin_token and store_url parameters
-  const toolAdminToken = 'tool_override_token';
+  const toolAdminToken = 'tool_override_admin_token';
   const toolStoreUrl = 'override-shop.myshopify.com';
   const adminToken = toolAdminToken || defaultAdminToken;
   const finalStoreUrl = toolStoreUrl || storeUrl;

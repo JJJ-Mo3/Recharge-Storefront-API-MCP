@@ -133,7 +133,7 @@ if [ -f .env ]; then
     print_info "Validating .env file format..."
     if grep -q "RECHARGE_STOREFRONT_DOMAIN=" .env; then
         domain=$(grep "RECHARGE_STOREFRONT_DOMAIN=" .env | cut -d'=' -f2)
-        if [ "$domain" = "your-shop.myshopify.com" ]; then
+        if [ "$domain" = "your-shop.myshopify.com" ] || [ -z "$domain" ]; then
             print_warning "Please update RECHARGE_STOREFRONT_DOMAIN with your actual domain"
         else
             print_status "Domain configured: $domain"
@@ -144,7 +144,7 @@ if [ -f .env ]; then
     
     if grep -q "RECHARGE_ADMIN_TOKEN=" .env; then
         token=$(grep "RECHARGE_ADMIN_TOKEN=" .env | cut -d'=' -f2)
-        if [ "$token" = "your_admin_api_token_here" ] || [ -z "$token" ]; then
+        if [ "$token" = "your_admin_token_here" ] || [ -z "$token" ]; then
             print_warning "Please update RECHARGE_ADMIN_TOKEN with your actual admin token"
         else
             print_status "Admin token configured"

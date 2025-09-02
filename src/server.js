@@ -261,15 +261,18 @@ async function main() {
     }
     
     // Validate environment
-    if (!process.env.RECHARGE_STOREFRONT_DOMAIN && !process.env.RECHARGE_ADMIN_TOKEN) {
+    const hasStoreDomain = process.env.RECHARGE_STOREFRONT_DOMAIN && process.env.RECHARGE_STOREFRONT_DOMAIN.trim() !== '';
+    const hasAdminToken = process.env.RECHARGE_ADMIN_TOKEN && process.env.RECHARGE_ADMIN_TOKEN.trim() !== '';
+    
+    if (!hasStoreDomain && !hasAdminToken) {
       console.error('[WARNING] No environment variables configured. Tools will require parameters for each call.');
     }
     
-    if (process.env.RECHARGE_STOREFRONT_DOMAIN && process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
+    if (hasStoreDomain && process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
       console.error('[WARNING] Please update RECHARGE_STOREFRONT_DOMAIN with your actual domain');
     }
     
-    if (process.env.RECHARGE_ADMIN_TOKEN && process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
+    if (hasAdminToken && process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
       console.error('[WARNING] Please update RECHARGE_ADMIN_TOKEN with your actual admin token');
     }
     
@@ -282,9 +285,9 @@ async function main() {
       console.error('[DEBUG] Server name:', process.env.MCP_SERVER_NAME || 'recharge-storefront-api-mcp');
       console.error('[DEBUG] Server version:', process.env.MCP_SERVER_VERSION || '1.0.0');
       console.error('[DEBUG] Available tools:', tools.length);
-      console.error('[DEBUG] Store domain:', process.env.RECHARGE_STOREFRONT_DOMAIN || 'Not configured');
-      console.error('[DEBUG] Admin token:', process.env.RECHARGE_ADMIN_TOKEN ? 'Configured' : 'Not configured');
-      console.error('[DEBUG] Session token:', process.env.RECHARGE_SESSION_TOKEN ? 'Configured' : 'Not configured');
+      console.error('[DEBUG] Store domain:', hasStoreDomain ? process.env.RECHARGE_STOREFRONT_DOMAIN : 'Not configured');
+      console.error('[DEBUG] Admin token:', hasAdminToken ? 'Configured' : 'Not configured');
+      console.error('[DEBUG] Session token:', (process.env.RECHARGE_SESSION_TOKEN && process.env.RECHARGE_SESSION_TOKEN.trim() !== '') ? 'Configured' : 'Not configured');
     }
     
     console.error('[INFO] Server ready - listening for MCP requests');

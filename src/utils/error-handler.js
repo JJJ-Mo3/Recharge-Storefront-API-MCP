@@ -386,6 +386,7 @@ export function validateAuthParams(params) {
     }
   }
 }
+
 /**
  * Sanitize error message for logging
  * @param {string} message - Error message
