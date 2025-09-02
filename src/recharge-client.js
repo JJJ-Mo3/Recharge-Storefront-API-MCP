@@ -385,12 +385,11 @@ export class RechargeClient {
     }
 
     const sessionData = {
-      customer_id: customerId.toString(),
       ...options
     };
 
     try {
-      const response = await this.makeAdminRequest('POST', '/customer_sessions', sessionData);
+      const response = await this.makeAdminRequest('POST', `/customers/${customerId.toString()}/sessions`, sessionData);
       
       if (!response || !response.customer_session) {
         throw new Error('Invalid response from session creation API');
