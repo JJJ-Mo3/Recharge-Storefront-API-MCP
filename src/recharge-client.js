@@ -34,7 +34,7 @@ export class RechargeClient {
 
     // Create axios instances
     this.storefrontApi = axios.create({
-      baseURL: `https://${domain}`,
+      baseURL: 'https://api.rechargeapps.com',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
