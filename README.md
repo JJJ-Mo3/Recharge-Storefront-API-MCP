@@ -138,7 +138,7 @@ Admin API Token + Customer ID → Customer Session Token → API Operations
 3. **Create Admin Token**: Create a new **Admin API** token (not Storefront API token)
 4. **Copy Token**: Save the token (starts with your store prefix)
 
-**Critical**: You must use **Admin API** tokens. Storefront API tokens will not work for session creation.
+**Critical**: You must use **Admin API** tokens. Storefront API tokens will not work for session creation. Admin tokens typically start with your store prefix (e.g., `mystore_`) or `sk_`.
 
 ### Authentication Methods
 
@@ -544,10 +544,10 @@ Create a `.env` file in the project root:
 RECHARGE_STOREFRONT_DOMAIN=your-shop.myshopify.com
 
 # Required: Admin API token for session creation
-RECHARGE_ADMIN_TOKEN=your_admin_token_here
+RECHARGE_ADMIN_TOKEN=your_admin_api_token_here
 
 # Optional: Default customer session token (if you have one)
-RECHARGE_SESSION_TOKEN=existing_customer_session_token
+RECHARGE_SESSION_TOKEN=
 
 # Optional: Server configuration
 MCP_SERVER_NAME=recharge-storefront-api-mcp
@@ -562,7 +562,7 @@ DEBUG=true
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `RECHARGE_STOREFRONT_DOMAIN` | Yes* | Your Shopify domain | `shop.myshopify.com` |
-| `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `your_admin_token_here` |
+| `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `mystore_abc123` |
 | `RECHARGE_SESSION_TOKEN` | No | Default customer session token | `st_abc123` |
 | `MCP_SERVER_NAME` | No | Server identification | `recharge-mcp` |
 | `MCP_SERVER_VERSION` | No | Server version | `1.0.0` |
@@ -579,7 +579,7 @@ Override environment variables in individual tool calls:
   "name": "get_subscriptions",
   "arguments": {
     "store_url": "different-shop.myshopify.com",
-    "admin_token": "different_admin_token",
+    "admin_token": "different_admin_api_token",
     "customer_email": "customer@example.com"
   }
 }

@@ -140,7 +140,7 @@ if [ -f .env ]; then
             if [[ ! "$domain" =~ \.myshopify\.com$ ]]; then
                 print_warning "Domain should end with .myshopify.com: $domain"
             else
-            print_status "Domain configured: $domain"
+                print_status "Domain configured: $domain"
             fi
         fi
     else
@@ -149,14 +149,14 @@ if [ -f .env ]; then
     
     if grep -q "RECHARGE_ADMIN_TOKEN=" .env; then
         token=$(grep "RECHARGE_ADMIN_TOKEN=" .env | cut -d'=' -f2)
-        if [ "$token" = "your_admin_token_here" ] || [ -z "$token" ]; then
+        if [ "$token" = "your_admin_api_token_here" ] || [ "$token" = "your_admin_token_here" ] || [ -z "$token" ]; then
             print_warning "Please update RECHARGE_ADMIN_TOKEN with your actual admin token"
         else
             # Basic token validation
             if [ ${#token} -lt 10 ]; then
                 print_warning "Admin token appears to be too short: ${#token} characters"
             else
-            print_status "Admin token configured"
+                print_status "Admin token configured"
             fi
         fi
     else

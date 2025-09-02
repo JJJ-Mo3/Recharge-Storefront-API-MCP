@@ -763,7 +763,7 @@ Edit your Claude Desktop configuration file:
 #### VSCode with GitHub Copilot
 
 1. **Install MCP extension** for VSCode (if available)
-2. **Add to VSCode settings.json** (`Ctrl/Cmd + Shift + P` → "Preferences: Open Settings (JSON)"):
+2. **Add to VSCode settings.json** (`Ctrl/Cmd + Shift + P\` → "Preferences: Open Settings (JSON)"):
 
 ```json
 {
@@ -829,11 +829,11 @@ For any MCP-compatible client:
 1. **Use absolute paths** for reliability across different environments
 2. **Environment variables** can be set in client config or .env file
 3. **Test connection** after setup using client's MCP testing features
-4. **Enable debug mode** by adding `"DEBUG": "true"` to env variables for troubleshooting
+4. **Enable debug mode** by adding `"DEBUG": "true"\` to env variables for troubleshooting
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env\` file in the project root:
 
 ```bash
 # Required: Your Shopify domain
@@ -918,7 +918,7 @@ DEBUG=true npm start
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| `get_customer` | Get current customer information | `customer_email` or `customer_id` |
+| `get_customer` | Get current customer information | `customer_email\` or `customer_id` |
 | `update_customer` | Update customer profile | `email`, `first_name`, `last_name`, `phone` |
 | `get_customer_by_email` | Find customer by email (returns ID) | `email` |
 | `create_customer_session_by_id` | Create session manually | `customer_id`, `return_url` |
@@ -1113,7 +1113,7 @@ export RECHARGE_STOREFRONT_DOMAIN=your-shop.myshopify.com
 
 #### Redirect Issues
 
-**Problem**: `Too many redirects` or `API returned redirect`
+**Problem**: `Too many redirects\` or `API returned redirect`
 ```bash
 # Common causes and solutions:
 
@@ -1172,7 +1172,7 @@ Debug information includes:
 ### Getting Help
 
 1. **Check Documentation**: Review this README
-2. **Enable Debug Mode**: Use `DEBUG=true` for detailed logging
+2. **Enable Debug Mode**: Use `DEBUG=true\` for detailed logging
 3. **Validate Setup**: Run `npm run validate`
 4. **Test API Keys**: Run `npm run test:api-keys`
 5. **Check Coverage**: Run `npm run coverage`
@@ -1220,7 +1220,7 @@ Contributions are welcome! When contributing:
 
 - **Follow existing patterns**: Use the established code structure and naming conventions
 - **Add proper validation**: Use Zod schemas for all new tool parameters
-- **Test thoroughly**: Run `npm run validate` before submitting changes
+- **Test thoroughly**: Run `npm run validate\` before submitting changes
 - **Update documentation**: Keep the README current with any changes
 - **Handle errors properly**: Use the existing error handling patterns
 
@@ -1238,9 +1238,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Debug Mode**: Detailed logging for troubleshooting
 
 ### Getting Help
-- **Debug Mode**: Enable with `DEBUG=true` for troubleshooting
-- **Validation**: Run `npm run validate` to check setup
-- **Coverage**: Run `npm run coverage` to see API coverage
+- **Debug Mode**: Enable with `DEBUG=true\` for troubleshooting
+- **Validation**: Run `npm run validate\` to check setup
+- **Coverage**: Run `npm run coverage\` to see API coverage
 
 ### Project Statistics
 - **37 Tools**: Complete Recharge Storefront API coverage

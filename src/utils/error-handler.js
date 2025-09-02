@@ -408,6 +408,26 @@ export function sanitizeErrorMessage(message) {
 }
 
 /**
+ * Sanitize error message for logging
+ * @param {string} message - Error message
+ * @returns {string} Sanitized message
+ */
+export function sanitizeErrorMessage(message) {
+  if (typeof message !== 'string') {
+    return 'Invalid error message format';
+  }
+  
+  // Remove potential sensitive information
+  return message
+    .replace(/token[s]?[:\s=]+[a-zA-Z0-9_-]+/gi, 'token=***')
+    .replace(/key[s]?[:\s=]+[a-zA-Z0-9_-]+/gi, 'key=***')
+    .replace(/password[s]?[:\s=]+[^\s]+/gi, 'password=***')
+    .replace(/secret[s]?[:\s=]+[^\s]+/gi, 'secret=***')
+    .replace(/Bearer\s+[a-zA-Z0-9_-]+/gi, 'Bearer ***')
+    .replace(/X-Recharge-Access-Token[:\s=]+[a-zA-Z0-9_-]+/gi, 'X-Recharge-Access-Token: ***');
+}
+
+/**
  * Validate that a value is a valid positive integer
  * @param {any} value - Value to validate
  * @param {string} fieldName - Name of the field for error messages
