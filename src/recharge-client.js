@@ -137,8 +137,6 @@ export class RechargeClient {
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Using cached session for customer ${finalCustomerId}`);
         }
-        // Update the client's session token to use the cached one
-        this.sessionToken = cachedToken;
         return cachedToken;
       }
       
@@ -156,9 +154,6 @@ export class RechargeClient {
         
         // Cache the new session
         this.sessionCache.setSessionToken(finalCustomerId, newToken, customerEmail);
-        
-        // Update the client's session token for future requests
-        this.sessionToken = newToken;
         
         return newToken;
       } catch (error) {
