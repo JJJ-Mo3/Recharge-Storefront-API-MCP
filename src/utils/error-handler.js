@@ -95,7 +95,7 @@ export function handleAPIError(error) {
     };
     
     // Log detailed error information for debugging
-    if (process.env.DEBUG) {
+    if (process.env.DEBUG === 'true') {
       console.error(`[DEBUG] API Error ${status}:`, {
         message,
         errorCode,
@@ -114,7 +114,7 @@ export function handleAPIError(error) {
       }
     };
     
-    if (process.env.DEBUG) {
+    if (process.env.DEBUG === 'true') {
       console.error('[DEBUG] Network error - no response received:', {
         message: error.message,
         code: error.code,
@@ -134,7 +134,7 @@ export function handleAPIError(error) {
       config: error.config
     };
     
-    if (process.env.DEBUG) {
+    if (process.env.DEBUG === 'true') {
       console.error('[DEBUG] Request setup error:', {
         message: error.message,
         details

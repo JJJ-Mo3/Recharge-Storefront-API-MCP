@@ -250,10 +250,15 @@ async function main() {
     
     // Validate required dependencies
     try {
-      await import('@modelcontextprotocol/sdk/server/index.js');
-      await import('zod');
-      await import('axios');
-      await import('dotenv');
+      const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
+      const { z } = await import('zod');
+      const axios = await import('axios');
+      const dotenv = await import('dotenv');
+      
+      // Validate that imports are functional
+      if (!Server || !z || !axios || !dotenv) {
+        throw new Error('Failed to import required modules');
+      }
     } catch (error) {
       console.error('[FATAL] Missing required dependencies. Please run: npm install');
       console.error('[DEBUG] Missing dependency:', error.message);
@@ -261,18 +266,22 @@ async function main() {
     }
     
     // Validate environment
-    const hasStoreDomain = process.env.RECHARGE_STOREFRONT_DOMAIN && process.env.RECHARGE_STOREFRONT_DOMAIN.trim() !== '';
-    const hasAdminToken = process.env.RECHARGE_ADMIN_TOKEN && process.env.RECHARGE_ADMIN_TOKEN.trim() !== '';
+    const hasStoreDomain = process.env.RECHARGE_STOREFRONT_DOMAIN && 
+      process.env.RECHARGE_STOREFRONT_DOMAIN.trim() !== '' && 
+      process.env.RECHARGE_STOREFRONT_DOMAIN !== 'your-shop.myshopify.com';
+    const hasAdminToken = process.env.RECHARGE_ADMIN_TOKEN && 
+      process.env.RECHARGE_ADMIN_TOKEN.trim() !== '' && 
+      process.env.RECHARGE_ADMIN_TOKEN !== 'your_admin_token_here';
     
     if (!hasStoreDomain && !hasAdminToken) {
       console.error('[WARNING] No environment variables configured. Tools will require parameters for each call.');
     }
     
-    if (hasStoreDomain && process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
+    if (process.env.RECHARGE_STOREFRONT_DOMAIN === 'your-shop.myshopify.com') {
       console.error('[WARNING] Please update RECHARGE_STOREFRONT_DOMAIN with your actual domain');
     }
     
-    if (hasAdminToken && process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
+    if (process.env.RECHARGE_ADMIN_TOKEN === 'your_admin_token_here') {
       console.error('[WARNING] Please update RECHARGE_ADMIN_TOKEN with your actual admin token');
     }
     

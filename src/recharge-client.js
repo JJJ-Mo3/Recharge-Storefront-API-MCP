@@ -273,11 +273,11 @@ export class RechargeClient {
    */
   async createCustomerSessionById(customerId, options = {}) {
     const sessionData = {
-      customer_id: parseInt(customerId),
+      customer_id: parseInt(customerId, 10),
       ...options
     };
     
-    const response = await this.makeAdminRequest('POST', '/customer_sessions', sessionData);
+    const response = await this.makeAdminRequest('POST', '/customer_sessions', { customer_session: sessionData });
     
     return response;
   }
@@ -289,7 +289,7 @@ export class RechargeClient {
   }
 
   async updateCustomer(updateData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', '/customer', updateData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', '/customer', { customer: updateData }, null, customerId, customerEmail);
     return response.customer || response;
   }
 
@@ -305,12 +305,12 @@ export class RechargeClient {
   }
 
   async createSubscription(subscriptionData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', '/subscriptions', subscriptionData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', '/subscriptions', { subscription: subscriptionData }, null, customerId, customerEmail);
     return response.subscription || response;
   }
 
   async updateSubscription(subscriptionId, updateData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, updateData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, { subscription: updateData }, null, customerId, customerEmail);
     return response.subscription || response;
   }
 
@@ -325,12 +325,12 @@ export class RechargeClient {
   }
 
   async swapSubscription(subscriptionId, swapData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, swapData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, { subscription: swapData }, null, customerId, customerEmail);
     return response.subscription || response;
   }
 
   async cancelSubscription(subscriptionId, cancelData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, cancelData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, { subscription: cancelData }, null, customerId, customerEmail);
     return response.subscription || response;
   }
 
@@ -340,7 +340,7 @@ export class RechargeClient {
   }
 
   async setNextChargeDate(subscriptionId, date, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, { next_charge_scheduled_at: date }, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, { subscription: { next_charge_scheduled_at: date } }, null, customerId, customerEmail);
     return response.subscription || response;
   }
 
@@ -356,12 +356,12 @@ export class RechargeClient {
   }
 
   async createAddress(addressData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', '/addresses', addressData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', '/addresses', { address: addressData }, null, customerId, customerEmail);
     return response.address || response;
   }
 
   async updateAddress(addressId, addressData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/addresses/${addressId}`, addressData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/addresses/${addressId}`, { address: addressData }, null, customerId, customerEmail);
     return response.address || response;
   }
 
@@ -382,7 +382,7 @@ export class RechargeClient {
   }
 
   async updatePaymentMethod(paymentMethodId, paymentData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/payment_methods/${paymentMethodId}`, paymentData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/payment_methods/${paymentMethodId}`, { payment_method: paymentData }, null, customerId, customerEmail);
     return response.payment_method || response;
   }
 
@@ -431,12 +431,12 @@ export class RechargeClient {
   }
 
   async createOnetime(onetimeData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', '/onetimes', onetimeData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', '/onetimes', { onetime: onetimeData }, null, customerId, customerEmail);
     return response.onetime || response;
   }
 
   async updateOnetime(onetimeId, onetimeData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/onetimes/${onetimeId}`, onetimeData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/onetimes/${onetimeId}`, { onetime: onetimeData }, null, customerId, customerEmail);
     return response.onetime || response;
   }
 
@@ -467,12 +467,12 @@ export class RechargeClient {
   }
 
   async createBundleSelection(selectionData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', '/bundle_selections', selectionData, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', '/bundle_selections', { bundle_selection: selectionData }, null, customerId, customerEmail);
     return response.bundle_selection || response;
   }
 
   async updateBundleSelection(bundleSelectionId, selectionData, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('PUT', `/bundle_selections/${bundleSelectionId}`, selectionData, null, customerId, customerEmail);
+    const response = await this.makeRequest('PUT', `/bundle_selections/${bundleSelectionId}`, { bundle_selection: selectionData }, null, customerId, customerEmail);
     return response.bundle_selection || response;
   }
 
@@ -493,7 +493,7 @@ export class RechargeClient {
   }
 
   async applyDiscount(discountCode, customerId = null, customerEmail = null) {
-    const response = await this.makeRequest('POST', '/discounts', { discount_code: discountCode }, null, customerId, customerEmail);
+    const response = await this.makeRequest('POST', '/discounts', { discount: { discount_code: discountCode } }, null, customerId, customerEmail);
     return response.discount || response;
   }
 

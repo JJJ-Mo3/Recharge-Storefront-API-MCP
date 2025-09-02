@@ -91,7 +91,7 @@ run_test "API key logic test" "npm run test:api-keys" "required"
 run_test "Configuration validation" "npm run validate" "required"
 
 # Test package.json integrity
-run_test "Package.json validation" "node -e \"require('./package.json')\"" "required"
+run_test "Package.json validation" "node -e \"const pkg = await import('./package.json', { assert: { type: 'json' } }); console.log('Package valid:', pkg.default.name);\" --input-type=module" "required"
 
 # Test environment file template
 run_test "Environment template check" "test -f .env.example" "required"
@@ -112,13 +112,25 @@ run_test "Tools index exists" "test -f src/tools/index.js" "required"
 run_test "Error handler exists" "test -f src/utils/error-handler.js" "required"
 run_test "Session cache exists" "test -f src/utils/session-cache.js" "required"
 
+# Test all tool files exist
+run_test "Customer tools exist" "test -f src/tools/customer-tools.js" "required"
+run_test "Subscription tools exist" "test -f src/tools/subscription-tools.js" "required"
+run_test "Address tools exist" "test -f src/tools/address-tools.js" "required"
+run_test "Payment tools exist" "test -f src/tools/payment-tools.js" "required"
+run_test "Product tools exist" "test -f src/tools/product-tools.js" "required"
+run_test "Order tools exist" "test -f src/tools/order-tools.js" "required"
+run_test "Charge tools exist" "test -f src/tools/charge-tools.js" "required"
+run_test "Onetime tools exist" "test -f src/tools/onetimes-tools.js" "required"
+run_test "Bundle tools exist" "test -f src/tools/bundle-tools.js" "required"
+run_test "Discount tools exist" "test -f src/tools/discount-tools.js" "required"
+
 # Count tool files
 TOOL_FILES=$(find src/tools -name "*-tools.js" | wc -l)
-if [ "$TOOL_FILES" -gt 10 ]; then
+if [ "$TOOL_FILES" -eq 10 ]; then
     print_status "Tool files count: $TOOL_FILES"
     TESTS_PASSED=$((TESTS_PASSED + 1))
 else
-    print_error "Insufficient tool files: $TOOL_FILES (expected > 10)"
+    print_error "Incorrect tool files count: $TOOL_FILES (expected exactly 10)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
 fi
 
@@ -126,7 +138,8 @@ fi
 if [ -f .env ]; then
     print_info "Testing environment configuration..."
     if run_test "Environment variables check" "node -e \"
-        require('dotenv').config();
+        const dotenv = await import('dotenv');
+        dotenv.config();
         const domain = process.env.RECHARGE_STOREFRONT_DOMAIN;
         const adminToken = process.env.RECHARGE_ADMIN_TOKEN;
         
@@ -147,7 +160,7 @@ if [ -f .env ]; then
         
         console.log('Domain configured:', domain);
         console.log('Admin token configured:', adminToken ? 'Yes' : 'No');
-    \"" "optional"; then
+    \" --input-type=module" "optional"; then
         print_status "Environment configuration is valid"
     fi
 else
