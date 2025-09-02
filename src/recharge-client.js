@@ -118,16 +118,6 @@ export class RechargeClient {
           throw new Error(`Invalid email format: ${customerEmail}`);
         }
         
-        // Validate email format
-        if (typeof customerEmail !== 'string' || customerEmail.trim() === '') {
-          throw new Error('Customer email must be a non-empty string');
-        }
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(customerEmail.trim())) {
-          throw new Error(`Invalid email format: ${customerEmail}`);
-        }
-        
         finalCustomerId = this.sessionCache.getCustomerIdByEmail(customerEmail);
         
         if (!finalCustomerId) {
