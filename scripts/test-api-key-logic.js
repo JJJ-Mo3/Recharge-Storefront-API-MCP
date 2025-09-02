@@ -91,8 +91,8 @@
     // Tool call without admin_token or store_url parameters
     const toolAdminToken = undefined;
     const toolStoreUrl = undefined;
-    const adminToken = toolAdminToken || defaultAdminToken;
-    const finalStoreUrl = toolStoreUrl || storeUrl;
+    const adminToken = (toolAdminToken || defaultAdminToken) && (toolAdminToken || defaultAdminToken).trim() !== '' ? (toolAdminToken || defaultAdminToken) : null;
+    const finalStoreUrl = (toolStoreUrl || storeUrl) && (toolStoreUrl || storeUrl).trim() !== '' ? (toolStoreUrl || storeUrl) : null;
     
     if (!adminToken || !finalStoreUrl) {
       throw new Error('No admin token or store URL available. Please provide parameters in your tool call or set environment variables.');
@@ -115,8 +115,8 @@
     // Tool call WITH admin_token and store_url parameters
     const toolAdminToken = 'tool_override_admin_token';
     const toolStoreUrl = 'override-shop.myshopify.com';
-    const adminToken = toolAdminToken || defaultAdminToken;
-    const finalStoreUrl = toolStoreUrl || storeUrl;
+    const adminToken = (toolAdminToken || defaultAdminToken) && (toolAdminToken || defaultAdminToken).trim() !== '' ? (toolAdminToken || defaultAdminToken) : null;
+    const finalStoreUrl = (toolStoreUrl || storeUrl) && (toolStoreUrl || storeUrl).trim() !== '' ? (toolStoreUrl || storeUrl) : null;
     
     if (!adminToken || !finalStoreUrl) {
       throw new Error('No admin token available');

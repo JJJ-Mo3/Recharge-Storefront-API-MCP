@@ -98,6 +98,7 @@ run_test "Environment template check" "test -f .env.example" "required"
 
 # Test main entry point
 run_test "Main entry point exists" "test -f index.js" "required"
+run_test "Main entry point syntax" "node --check index.js" "required"
 
 # Test Docker configuration
 run_test "Dockerfile syntax check" "test -f Dockerfile" "optional"
@@ -125,8 +126,9 @@ run_test "Bundle tools exist" "test -f src/tools/bundle-tools.js" "required"
 run_test "Discount tools exist" "test -f src/tools/discount-tools.js" "required"
 
 # Validate tool implementations
-run_test "All tools properly exported" "node -e \"
-  import('./src/tools/index.js').then(({ tools }) => {
+run_test "All tools properly exported" "node --input-type=module -e \"
+  const { tools } = await import('./src/tools/index.js');
+  try {
     if (!Array.isArray(tools)) {
       console.error('Tools export is not an array');
       process.exit(1);
@@ -158,11 +160,11 @@ run_test "All tools properly exported" "node -e \"
     }
     
     console.log('All tools have required properties');
-  }).catch(error => {
+  } catch (error) {
     console.error('Failed to load tools:', error.message);
     process.exit(1);
-  });
-\" --input-type=module" "required"
+  }
+\"" "required"
 
 # Count tool files
 TOOL_FILES=$(find src/tools -name "*-tools.js" | wc -l)
