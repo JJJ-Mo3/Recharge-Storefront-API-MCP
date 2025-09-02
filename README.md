@@ -858,6 +858,13 @@ DEBUG=true npm start
 # Add customer_email or customer_id to tool calls
 ```
 
+**Problem**: `Session creation returned invalid token`
+```bash
+# Solution: Check admin token permissions and format
+# Ensure admin token has customer session creation permissions
+# Verify token is not expired or revoked
+```
+
 ### Debug Mode
 
 Enable comprehensive debugging:
