@@ -7,6 +7,8 @@
 
 (async () => {
   console.log('🧪 Testing API Key and Store URL Handling Logic\n');
+}
+)
 
 (async () => {
   console.log('🧪 Testing API Key and Store URL Handling Logic\n');
@@ -181,4 +183,3 @@ console.log('- Proper error when no admin token or store URL available anywhere 
 console.log('- Empty string tokens and store URLs handled correctly ✅');
 console.log('- Tool parameters override empty environment ✅');
 console.log('- URL format validation works correctly ✅');
-})();
