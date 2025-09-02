@@ -259,35 +259,27 @@ export class RechargeClient {
    * Get customer by email (requires admin token)
    */
   async getCustomerByEmail(email) {
-    try {
-      const response = await this.makeAdminRequest('GET', '/customers', null, { email });
-      
-      if (!response.customers || response.customers.length === 0) {
-        throw new Error(`Customer not found with email: ${email}`);
-      }
-      
-      return response.customers[0];
-    } catch (error) {
-      throw error;
+    const response = await this.makeAdminRequest('GET', '/customers', null, { email });
+    
+    if (!response.customers || response.customers.length === 0) {
+      throw new Error(`Customer not found with email: ${email}`);
     }
+    
+    return response.customers[0];
   }
 
   /**
    * Create customer session by ID (requires admin token)
    */
   async createCustomerSessionById(customerId, options = {}) {
-    try {
-      const sessionData = {
-        customer_id: parseInt(customerId),
-        ...options
-      };
-      
-      const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, sessionData);
-      
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const sessionData = {
+      customer_id: parseInt(customerId),
+      ...options
+    };
+    
+    const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, sessionData);
+    
+    return response;
   }
 
   // Customer methods

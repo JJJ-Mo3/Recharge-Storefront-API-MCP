@@ -13,7 +13,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import dotenv from 'dotenv';
 import { RechargeClient } from './recharge-client.js';
 import { tools } from './tools/index.js';
-import { formatErrorResponse } from './utils/error-handler.js';
+import { formatErrorResponse, validateAuthParams } from './utils/error-handler.js';
 
 // Load environment variables
 dotenv.config();
@@ -116,6 +116,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     // Validate input schema
     const validatedArgs = tool.inputSchema.parse(args || {});
+    
+    // Validate authentication parameters
+    validateAuthParams(validatedArgs);
     
     // Extract authentication and configuration
     const storeUrl = validatedArgs.store_url || process.env.RECHARGE_STOREFRONT_DOMAIN;

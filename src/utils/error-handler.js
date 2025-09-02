@@ -321,6 +321,72 @@ export function validateRequiredParams(params, required) {
 }
 
 /**
+ * Validate authentication parameters
+ * @param {Object} params Parameters to validate
+ * @throws {Error} If authentication setup is invalid
+ */
+export function validateAuthParams(params) {
+  const { customer_id, customer_email, session_token, admin_token, store_url } = params;
+  
+  // Validate store URL format if provided
+  if (store_url) {
+    let domain = store_url;
+    if (store_url.startsWith('http://') || store_url.startsWith('https://')) {
+      try {
+        const urlObj = new URL(store_url);
+        domain = urlObj.hostname;
+      } catch (error) {
+        throw new Error(`Invalid store URL format: ${store_url}`);
+      }
+    }
+    
+    if (!domain.includes('.myshopify.com')) {
+      throw new Error(
+        `Invalid store URL format: ${store_url}\n` +
+        'Store URL must be a Shopify domain ending with .myshopify.com\n' +
+        'Example: your-shop.myshopify.com'
+      );
+    }
+  }
+  
+  // Validate customer identification
+  if (customer_id && customer_email) {
+    // Both provided is fine, customer_id takes precedence
+    if (process.env.DEBUG === 'true') {
+      console.error('[DEBUG] Both customer_id and customer_email provided, using customer_id');
+    }
+  }
+  
+  // Validate email format if provided
+  if (customer_email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customer_email)) {
+      throw new Error(`Invalid email format: ${customer_email}`);
+    }
+  }
+  
+  // Validate session token format if provided
+  if (session_token && typeof session_token === 'string') {
+    if (session_token.trim() === '') {
+      throw new Error('Session token cannot be empty');
+    }
+    // Session tokens typically start with 'st_' but we'll be flexible
+    if (session_token.length < 10) {
+      throw new Error('Session token appears to be too short');
+    }
+  }
+  
+  // Validate admin token format if provided
+  if (admin_token && typeof admin_token === 'string') {
+    if (admin_token.trim() === '') {
+      throw new Error('Admin token cannot be empty');
+    }
+    if (admin_token.length < 10) {
+      throw new Error('Admin token appears to be too short');
+    }
+  }
+}
+/**
  * Sanitize error message for logging
  * @param {string} message - Error message
  * @returns {string} Sanitized message

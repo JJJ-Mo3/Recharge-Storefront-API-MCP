@@ -276,8 +276,9 @@ Please specify 'customer_id', 'customer_email', or 'session_token' to ensure cor
 
 ## Usage Examples
 
-### Basic Customer Lookup
+### 1. Basic Customer Operations
 
+#### Customer Lookup
 ```json
 // Find customer by email
 {
@@ -287,16 +288,27 @@ Please specify 'customer_id', 'customer_email', or 'session_token' to ensure cor
   }
 }
 
-// Get customer details (automatic session creation)
+// Get customer details with automatic session creation
 {
   "name": "get_customer",
   "arguments": {
     "customer_email": "customer@example.com"
   }
 }
+
+// Update customer information
+{
+  "name": "update_customer",
+  "arguments": {
+    "customer_email": "customer@example.com",
+    "first_name": "John",
+    "last_name": "Smith",
+    "phone": "+1-555-123-4567"
+  }
+}
 ```
 
-### Customer Service Workflow
+### 2. Customer Service Workflow
 
 ```json
 // 1. Look up customer
@@ -318,7 +330,7 @@ Please specify 'customer_id', 'customer_email', or 'session_token' to ensure cor
 }
 ```
 
-### Subscription Management Workflow
+### 3. Subscription Management Workflow
 
 ```json
 // 1. Get subscription details
@@ -352,7 +364,7 @@ Please specify 'customer_id', 'customer_email', or 'session_token' to ensure cor
 }
 ```
 
-### Multi-Customer Operations
+### 4. Advanced Multi-Customer Operations
 
 ```json
 // Customer A operations
@@ -365,7 +377,7 @@ Please specify 'customer_id', 'customer_email', or 'session_token' to ensure cor
 {"name": "get_addresses", "arguments": {"customer_email": "alice@example.com"}}
 ```
 
-### Error Handling Example
+### 5. Error Handling and Troubleshooting
 
 ```json
 // This will fail with helpful error message
