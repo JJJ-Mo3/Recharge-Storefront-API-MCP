@@ -95,8 +95,29 @@ export class RechargeClient {
         }
       }
       
+      // Validate customer ID format if provided
+      if (finalCustomerId) {
+        if (typeof finalCustomerId !== 'string' && typeof finalCustomerId !== 'number') {
+          throw new Error('Customer ID must be a string or number');
+        }
+        finalCustomerId = finalCustomerId.toString();
+        if (finalCustomerId.trim() === '') {
+          throw new Error('Customer ID cannot be empty');
+        }
+      }
+      
       // If only email provided, look up customer ID
       if (!finalCustomerId && customerEmail) {
+        // Validate email format
+        if (typeof customerEmail !== 'string' || customerEmail.trim() === '') {
+          throw new Error('Customer email must be a non-empty string');
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(customerEmail.trim())) {
+          throw new Error(`Invalid email format: ${customerEmail}`);
+        }
+        
         // Validate email format
         if (typeof customerEmail !== 'string' || customerEmail.trim() === '') {
           throw new Error('Customer email must be a non-empty string');
@@ -131,6 +152,11 @@ export class RechargeClient {
         throw new Error('Unable to determine customer ID from provided information');
       }
       
+      // Validate we have a customer ID at this point
+      if (!finalCustomerId) {
+        throw new Error('Unable to determine customer ID from provided information');
+      }
+      
       // Check for cached session
       const cachedToken = this.sessionCache.getSessionToken(finalCustomerId);
       if (cachedToken) {
@@ -147,6 +173,10 @@ export class RechargeClient {
       try {
         const session = await this.createCustomerSessionById(finalCustomerId);
         const newToken = session.token;
+        
+        if (!newToken || typeof newToken !== 'string' || newToken.trim() === '') {
+          throw new Error('Session creation returned invalid token');
+        }
         
         if (!newToken || typeof newToken !== 'string' || newToken.trim() === '') {
           throw new Error('Session creation returned invalid token');
