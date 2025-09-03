@@ -162,8 +162,7 @@ export class RechargeClient {
       }
       try {
         const session = await this.createCustomerSessionById(finalCustomerId);
-        const newToken = session.token;
-        
+        const newToken = session.apiToken;          
         if (!newToken || typeof newToken !== 'string' || newToken.trim() === '') {
           throw new Error('Session creation returned invalid token');
         }
