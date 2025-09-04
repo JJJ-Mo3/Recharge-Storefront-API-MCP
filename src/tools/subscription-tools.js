@@ -36,7 +36,7 @@ const updateSubscriptionSchema = z.object({
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
   subscription_id: z.string().describe('The subscription ID'),
   next_charge_scheduled_at: z.string().optional().describe('Next charge date (ISO format)'),
-  order_interval_frequency: z.number().min(1).max(365).optional().describe('Order interval frequency (1-365, e.g., 1, 2, 3)'),
+  order_interval_frequency: z.number().min(1).optional().describe('Order interval frequency (e.g., 1, 2, 3)'),
   order_interval_unit: z.enum(['day', 'week', 'month']).optional().describe('Order interval unit'),
   quantity: z.number().min(1).max(1000).optional().describe('Subscription quantity (1-1000)'),
   variant_id: z.number().min(1).optional().describe('Product variant ID'),
@@ -59,23 +59,42 @@ const updateSubscriptionSchema = z.object({
 }, {
   message: "When updating order_interval_frequency, order_interval_unit should also be specified for clarity"
 }).refine(data => {
-  // Validate frequency ranges based on unit
+  // Enhanced frequency validation with strict business rules
   if (data.order_interval_frequency !== undefined && data.order_interval_unit !== undefined) {
     const { order_interval_frequency: freq, order_interval_unit: unit } = data;
     
-    if (unit === 'day' && (freq < 1 || freq > 90)) {
-      return false; // Daily: 1-90 days max
+    // Validate frequency is a positive integer
+    if (!Number.isInteger(freq) || freq < 1) {
+      return false;
     }
-    if (unit === 'week' && (freq < 1 || freq > 52)) {
-      return false; // Weekly: 1-52 weeks max
-    }
-    if (unit === 'month' && (freq < 1 || freq > 12)) {
-      return false; // Monthly: 1-12 months max
+    
+    // Unit-specific frequency validation with business rules
+    switch (unit) {
+      case 'day':
+        // Daily subscriptions: 1-90 days (Recharge business rule)
+        if (freq < 1 || freq > 90) {
+          return false;
+        }
+        break;
+      case 'week':
+        // Weekly subscriptions: 1-52 weeks (1 year max)
+        if (freq < 1 || freq > 52) {
+          return false;
+        }
+        break;
+      case 'month':
+        // Monthly subscriptions: 1-12 months (1 year max)
+        if (freq < 1 || freq > 12) {
+          return false;
+        }
+        break;
+      default:
+        return false;
     }
   }
   return true;
 }, {
-  message: "Invalid frequency range: Daily (1-90), Weekly (1-52), Monthly (1-12)"
+  message: "Invalid frequency range. Daily: 1-90 days, Weekly: 1-52 weeks, Monthly: 1-12 months. Frequency must be a positive integer."
 });
 
 const skipSubscriptionSchema = z.object({
@@ -345,6 +364,131 @@ export const subscriptionTools = [
       // Additional business logic validation
       const { subscription_id, order_interval_frequency, order_interval_unit, quantity, variant_id, next_charge_scheduled_at } = args;
       
+      // Enhanced frequency validation with detailed error messages
+      if (order_interval_frequency !== undefined || order_interval_unit !== undefined) {
+        // Both must be provided together
+        if (order_interval_frequency === undefined || order_interval_unit === undefined) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Both order_interval_frequency and order_interval_unit must be provided together when updating subscription frequency.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Validate frequency is a positive integer
+        if (!Number.isInteger(order_interval_frequency) || order_interval_frequency < 1) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: order_interval_frequency must be a positive integer, got: ${order_interval_frequency}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Enhanced unit-specific validation with business context
+        let isValidFrequency = false;
+        let validRange = '';
+        let businessReason = '';
+        
+        switch (order_interval_unit) {
+          case 'day':
+            isValidFrequency = order_interval_frequency >= 1 && order_interval_frequency <= 90;
+            validRange = '1-90 days';
+            businessReason = 'Daily subscriptions are limited to 90 days maximum to prevent billing complications';
+            break;
+          case 'week':
+            isValidFrequency = order_interval_frequency >= 1 && order_interval_frequency <= 52;
+            validRange = '1-52 weeks';
+            businessReason = 'Weekly subscriptions are limited to 52 weeks (1 year) maximum';
+            break;
+          case 'month':
+            isValidFrequency = order_interval_frequency >= 1 && order_interval_frequency <= 12;
+            validRange = '1-12 months';
+            businessReason = 'Monthly subscriptions are limited to 12 months (1 year) maximum';
+            break;
+          default:
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Error: Invalid order_interval_unit: ${order_interval_unit}. Must be 'day', 'week', or 'month'.`,
+                },
+              ],
+              isError: true,
+            };
+        }
+        
+        if (!isValidFrequency) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Invalid subscription frequency: ${order_interval_frequency} ${order_interval_unit}\n\nValid range: ${validRange}\nReason: ${businessReason}\n\nProvided: ${order_interval_frequency} ${order_interval_unit}\n\nExamples:\n- Every 2 weeks: frequency=2, unit="week"\n- Every 30 days: frequency=30, unit="day"\n- Every 3 months: frequency=3, unit="month"`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Calculate total days for additional validation
+        const totalDays = calculateTotalDays(order_interval_frequency, order_interval_unit);
+        
+        // Warn about very short frequencies (less than 7 days)
+        if (totalDays < 7) {
+          console.warn(`[WARNING] Very short subscription frequency (${totalDays} days) may cause billing and fulfillment issues.`);
+        }
+        
+        // Validate maximum total days (365 day business rule)
+        if (totalDays > 365) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Subscription frequency too long (${totalDays} days total). Maximum allowed is 365 days.\n\nProvided: ${order_interval_frequency} ${order_interval_unit} = ${totalDays} days\n\nPlease reduce the frequency or change the unit.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+      
+      // Validate quantity if provided
+      if (quantity !== undefined) {
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Invalid quantity: ${quantity}. Quantity must be an integer between 1 and 1000.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+      
+      // Validate variant_id if provided
+      if (variant_id !== undefined) {
+        if (!Number.isInteger(variant_id) || variant_id < 1) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Invalid variant_id: ${variant_id}. Variant ID must be a positive integer greater than 0.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+      
       // Validate next charge date is in the future
       if (next_charge_scheduled_at) {
         const nextChargeDate = new Date(next_charge_scheduled_at);
@@ -361,27 +505,6 @@ export const subscriptionTools = [
             ],
             isError: true,
           };
-        }
-      }
-      
-      // Validate frequency combination makes sense
-      if (order_interval_frequency && order_interval_unit) {
-        const totalDays = calculateTotalDays(order_interval_frequency, order_interval_unit);
-        if (totalDays > 365) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: Subscription frequency too long (${totalDays} days). Maximum allowed is 365 days.`,
-              },
-            ],
-            isError: true,
-          };
-        }
-        
-        // Warn about very short frequencies
-        if (totalDays < 7) {
-          console.warn(`Warning: Very short subscription frequency (${totalDays} days) may cause billing issues.`);
         }
       }
       
@@ -411,7 +534,7 @@ export const subscriptionTools = [
             content: [
               {
                 type: 'text',
-                text: `Subscription Frequency Error: ${error.message}\n\nValid combinations:\n- Daily: 1-90 days\n- Weekly: 1-52 weeks\n- Monthly: 1-12 months\n\nExample: order_interval_frequency=2, order_interval_unit="week" for every 2 weeks`,
+                text: `Subscription Frequency Error: ${error.message}\n\nValid frequency ranges:\n- Daily: 1-90 days (e.g., every 30 days)\n- Weekly: 1-52 weeks (e.g., every 2 weeks)\n- Monthly: 1-12 months (e.g., every 3 months)\n\nBusiness Rules:\n- Maximum subscription length: 365 days\n- Minimum recommended frequency: 7 days\n- Both frequency and unit must be provided together\n\nExamples:\n- Every 2 weeks: frequency=2, unit="week"\n- Every 30 days: frequency=30, unit="day"\n- Every 3 months: frequency=3, unit="month"`,
               },
             ],
             isError: true,
