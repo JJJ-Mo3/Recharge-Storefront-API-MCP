@@ -51,10 +51,11 @@ function validateUnicodeAddressText(text, fieldName, maxLength = 255) {
     throw new Error(`${fieldName} is too long (${normalized.length} characters). Maximum ${maxLength} characters allowed.`);
   }
   
-  // Validate character set - allow letters, marks, numbers, punctuation, symbols, emojis, and spaces
-  // This covers international addresses, mathematical symbols, and emojis while excluding control characters
-  if (!/^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(normalized)) {
-    throw new Error(`${fieldName} contains invalid characters. Only letters, numbers, punctuation, symbols, emojis, and spaces are allowed.`);
+  // Validate character set - allow letters, marks, numbers, basic punctuation, and spaces
+  // This covers international addresses while excluding emojis, mathematical symbols, and other special characters
+  // that may not be supported by shipping providers and payment processors
+  if (!/^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(normalized)) {
+    throw new Error(`${fieldName} contains unsupported characters. Only letters, numbers, basic punctuation (hyphens, periods, apostrophes), and spaces are allowed. Emojis and special symbols are not supported by shipping providers.`);
   }
   
   return normalized;
@@ -152,40 +153,40 @@ const createAddressSchema = z.object({
   admin_token: z.string().optional().describe('Recharge admin token (optional, takes precedence over environment variable if provided)'),
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
   address1: z.string().min(1).max(255).describe('Street address (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Street address contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Street address contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   address2: z.string().max(255).optional().describe('Apartment, suite, etc. (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Address line 2 contains invalid characters"
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Address line 2 contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   city: z.string().min(1).max(100).describe('City (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "City contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "City contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   province: z.string().min(1).max(100).describe('State/Province (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Province/State contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Province/State contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   zip: z.string().min(2).max(12).describe('ZIP/Postal code (international formats supported)')
     .refine(val => /^[\p{L}\p{N}\s\-]{2,12}$/u.test(val.trim()), {
       message: "Postal code format is invalid"
     }),
   country: z.string().min(2).max(100).describe('Country (full name or ISO code)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Country contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Country contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   first_name: z.string().min(1).max(255).describe('First name (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "First name contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "First name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   last_name: z.string().min(1).max(255).describe('Last name (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Last name contains invalid characters"
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Last name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   company: z.string().max(255).optional().describe('Company name (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Company name contains invalid characters"
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Company name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   phone: z.string().optional().describe('Phone number (international formats supported)')
     .refine(val => val === undefined || val === '' || /^[\+]?[\d\s\-\(\)\.]{7,20}$/.test(val.trim()), {
@@ -201,40 +202,40 @@ const updateAddressSchema = z.object({
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
   address_id: z.string().describe('The address ID'),
   address1: z.string().min(1).max(255).optional().describe('Street address (supports international characters)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Street address contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Street address contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   address2: z.string().max(255).optional().describe('Apartment, suite, etc. (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Address line 2 contains invalid characters"
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Address line 2 contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   city: z.string().min(1).max(100).optional().describe('City (supports international characters)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "City contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "City contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   province: z.string().min(1).max(100).optional().describe('State/Province (supports international characters)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Province/State contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Province/State contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   zip: z.string().min(2).max(12).optional().describe('ZIP/Postal code (international formats supported)')
     .refine(val => val === undefined || /^[\p{L}\p{N}\s\-]{2,12}$/u.test(val.trim()), {
       message: "Postal code format is invalid"
     }),
   country: z.string().min(2).max(100).optional().describe('Country (full name or ISO code)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Country contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Country contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   first_name: z.string().min(1).max(255).optional().describe('First name (supports international characters)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "First name contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "First name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   last_name: z.string().min(1).max(255).optional().describe('Last name (supports international characters)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Last name contains invalid characters"
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Last name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   company: z.string().max(255).optional().describe('Company name (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
-      message: "Company name contains invalid characters"
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(val.trim()), {
+      message: "Company name contains unsupported characters. Only letters, numbers, basic punctuation, and spaces are allowed."
     }),
   phone: z.string().optional().describe('Phone number (international formats supported)')
     .refine(val => val === undefined || val === '' || /^[\+]?[\d\s\-\(\)\.]{7,20}$/.test(val.trim()), {
