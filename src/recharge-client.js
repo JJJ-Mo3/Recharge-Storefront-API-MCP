@@ -33,7 +33,20 @@ export class RechargeClient {
     this.sessionCache = new SessionCache();
 
     // Get API URL from environment variable or use production default
-    const apiUrl = this.validateApiUrl(process.env.RECHARGE_API_URL) || 'https://api.rechargeapps.com';
+    let apiUrl = 'https://api.rechargeapps.com'; // Default to production
+    
+    if (process.env.RECHARGE_API_URL) {
+      const validatedUrl = this.validateApiUrl(process.env.RECHARGE_API_URL);
+      if (validatedUrl) {
+        apiUrl = validatedUrl;
+      } else {
+        throw new Error(
+          `Invalid RECHARGE_API_URL specified: ${process.env.RECHARGE_API_URL}\n` +
+          'API URL must use HTTPS protocol and be a valid URL format.\n' +
+          'Remove RECHARGE_API_URL from .env to use production API, or fix the URL format.'
+        );
+      }
+    }
 
     // Create axios instances
     this.storefrontApi = axios.create({
@@ -75,7 +88,7 @@ export class RechargeClient {
    */
   validateApiUrl(url) {
     if (!url || typeof url !== 'string') {
-      return null;
+      return null; // This is fine - means no URL was provided
     }
 
     try {
@@ -83,13 +96,17 @@ export class RechargeClient {
       
       // Only allow HTTPS for security
       if (urlObj.protocol !== 'https:') {
-        console.warn('[WARNING] API URL must use HTTPS protocol. Falling back to default.');
+        if (process.env.DEBUG === 'true') {
+          console.error('[DEBUG] API URL must use HTTPS protocol:', url);
+        }
         return null;
       }
       
       // Ensure no path manipulation
       if (urlObj.pathname !== '/' && urlObj.pathname !== '') {
-        console.warn('[WARNING] API URL should not contain path components. Falling back to default.');
+        if (process.env.DEBUG === 'true') {
+          console.error('[DEBUG] API URL should not contain path components:', url);
+        }
         return null;
       }
       
@@ -97,7 +114,9 @@ export class RechargeClient {
       return `${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`;
       
     } catch (error) {
-      console.warn(`[WARNING] Invalid API URL format: ${url}. Falling back to default.`);
+      if (process.env.DEBUG === 'true') {
+        console.error(`[DEBUG] Invalid API URL format: ${url}`);
+      }
       return null;
     }
   }
