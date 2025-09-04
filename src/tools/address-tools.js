@@ -184,7 +184,7 @@ const createAddressSchema = z.object({
       message: "Last name contains invalid characters"
     }),
   company: z.string().max(255).optional().describe('Company name (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Company name contains invalid characters"
     }),
   phone: z.string().optional().describe('Phone number (international formats supported)')
@@ -221,7 +221,7 @@ const updateAddressSchema = z.object({
       message: "Postal code format is invalid"
     }),
   country: z.string().min(2).max(100).optional().describe('Country (full name or ISO code)')
-    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => val === undefined || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
       message: "Country contains invalid characters"
     }),
   first_name: z.string().min(1).max(255).optional().describe('First name (supports international characters)')
@@ -233,7 +233,7 @@ const updateAddressSchema = z.object({
       message: "Last name contains invalid characters"
     }),
   company: z.string().max(255).optional().describe('Company name (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Company name contains invalid characters"
     }),
   phone: z.string().optional().describe('Phone number (international formats supported)')
