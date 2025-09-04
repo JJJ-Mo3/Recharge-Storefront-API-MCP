@@ -428,6 +428,9 @@ RECHARGE_STOREFRONT_DOMAIN=your-shop.myshopify.com
 # Required: Admin API token for session creation
 RECHARGE_ADMIN_TOKEN=your_admin_api_token_here
 
+# Optional: Recharge API URL (defaults to production)
+RECHARGE_API_URL=https://api.rechargeapps.com
+
 # Optional: Default customer session token (if you have one)
 RECHARGE_SESSION_TOKEN=
 
@@ -445,6 +448,7 @@ DEBUG=true
 |----------|----------|-------------|---------|
 | `RECHARGE_STOREFRONT_DOMAIN` | Yes* | Your Shopify domain | `shop.myshopify.com` |
 | `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `your_admin_api_token_here` |
+| `RECHARGE_API_URL` | No | Recharge API endpoint (defaults to production) | `https://api.stage.rechargeapps.com` |
 | `RECHARGE_SESSION_TOKEN` | No | Default customer session token | `st_abc123` |
 | `MCP_SERVER_NAME` | No | Server identification | `recharge-mcp` |
 | `MCP_SERVER_VERSION` | No | Server version | `1.0.0` |
