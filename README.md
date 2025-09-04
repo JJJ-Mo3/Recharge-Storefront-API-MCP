@@ -1,6 +1,6 @@
 # Recharge Storefront API MCP Server
 
-A comprehensive Model Context Protocol (MCP) server that provides complete access to the Recharge Storefront API. This server enables AI assistants and other MCP clients to interact with Recharge subscription management functionality through a standardized interface.
+A comprehensive Model Context Protocol (MCP) server that provides complete access to the Recharge Storefront API endpoints. This server enables AI assistants and other MCP clients to interact with Recharge subscription management functionality through a standardized interface.
 
 ## Table of Contents
 
