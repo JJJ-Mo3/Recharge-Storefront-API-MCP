@@ -742,13 +742,14 @@ The server provides comprehensive Unicode support for international customers:
 - **Address Fields**: Full Unicode support for street addresses, cities, provinces
 - **Postal Codes**: Country-specific validation for US, Canada, UK formats
 - **Phone Numbers**: International E.164 format support
-- **Character Encoding**: Proper handling of special characters and diacritics
+- **Character Encoding**: Proper handling of international characters and diacritics (emojis and special symbols not supported by shipping providers)
 
 #### Validation Features
 - **NFC Normalization**: Canonical decomposition and composition
 - **Control Character Removal**: Strips problematic characters
 - **Whitespace Normalization**: Consistent spacing handling
 - **Length Validation**: Appropriate limits for each field type
+- **Shipping Compatibility**: Restricts characters that may cause issues with shipping labels and payment processors
 
 #### Examples
 
@@ -769,16 +770,19 @@ The server provides comprehensive Unicode support for international customers:
   "name": "create_address",
   "arguments": {
     "customer_email": "tanaka@example.jp",
-    "first_name": "田中",
-    "last_name": "太郎",
-    "address1": "東京都渋谷区神南1-2-3",
-    "city": "東京",
-    "province": "東京都",
+    "first_name": "Tanaka",
+    "last_name": "Taro", 
+    "address1": "1-2-3 Jinnan, Shibuya-ku",
+    "city": "Tokyo",
+    "province": "Tokyo",
     "zip": "150-0041",
     "country": "Japan",
     "phone": "+81-3-1234-5678"
   }
 }
+
+// Note: While Unicode letters are supported (José, Müller, etc.), 
+// emojis and mathematical symbols are not supported by shipping providers
 ```
 
 ## Development
