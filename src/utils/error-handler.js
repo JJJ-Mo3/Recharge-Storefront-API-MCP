@@ -390,6 +390,29 @@ export function validateAuthParams(params) {
       throw new Error('Admin token appears to be too short');
     }
   }
+  
+  // Validate API URL if provided
+  if (params.api_url) {
+    try {
+      const urlObj = new URL(params.api_url);
+      if (urlObj.protocol !== 'https:') {
+        throw new Error('API URL must use HTTPS protocol for security');
+      }
+      
+      const allowedDomains = [
+        'api.rechargeapps.com',
+        'api.stage.rechargeapps.com', 
+        'api.sandbox.rechargeapps.com',
+        'api.dev.rechargeapps.com'
+      ];
+      
+      if (!allowedDomains.includes(urlObj.hostname)) {
+        throw new Error(`Invalid API URL domain: ${urlObj.hostname}. Must be one of: ${allowedDomains.join(', ')}`);
+      }
+    } catch (urlError) {
+      throw new Error(`Invalid API URL format: ${params.api_url}`);
+    }
+  }
 }
 
 /**

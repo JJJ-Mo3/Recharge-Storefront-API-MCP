@@ -33,7 +33,7 @@ export class RechargeClient {
     this.sessionCache = new SessionCache();
 
     // Get API URL from environment variable or use production default
-    const apiUrl = process.env.RECHARGE_API_URL || 'https://api.rechargeapps.com';
+    const apiUrl = this.validateApiUrl(process.env.RECHARGE_API_URL) || 'https://api.rechargeapps.com';
 
     // Create axios instances
     this.storefrontApi = axios.create({
@@ -65,6 +65,53 @@ export class RechargeClient {
         console.error(`[DEBUG] Admin API Request: ${request.method?.toUpperCase()} ${request.url}`);
         return request;
       });
+    }
+  }
+
+  /**
+   * Validate API URL to prevent security issues
+   * @param {string} url - URL to validate
+   * @returns {string|null} Validated URL or null if invalid
+   */
+  validateApiUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return null;
+    }
+
+    try {
+      const urlObj = new URL(url);
+      
+      // Only allow HTTPS for security
+      if (urlObj.protocol !== 'https:') {
+        console.warn('[WARNING] API URL must use HTTPS protocol. Falling back to default.');
+        return null;
+      }
+      
+      // Whitelist allowed Recharge domains
+      const allowedDomains = [
+        'api.rechargeapps.com',           // Production
+        'api.stage.rechargeapps.com',     // Staging
+        'api.sandbox.rechargeapps.com',   // Sandbox
+        'api.dev.rechargeapps.com'        // Development
+      ];
+      
+      if (!allowedDomains.includes(urlObj.hostname)) {
+        console.warn(`[WARNING] API URL domain not allowed: ${urlObj.hostname}. Must be one of: ${allowedDomains.join(', ')}. Falling back to default.`);
+        return null;
+      }
+      
+      // Ensure no path manipulation
+      if (urlObj.pathname !== '/' && urlObj.pathname !== '') {
+        console.warn('[WARNING] API URL should not contain path components. Falling back to default.');
+        return null;
+      }
+      
+      // Remove any query parameters or fragments for security
+      return `${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`;
+      
+    } catch (error) {
+      console.warn(`[WARNING] Invalid API URL format: ${url}. Falling back to default.`);
+      return null;
     }
   }
 
