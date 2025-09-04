@@ -51,10 +51,10 @@ function validateUnicodeAddressText(text, fieldName, maxLength = 255) {
     throw new Error(`${fieldName} is too long (${normalized.length} characters). Maximum ${maxLength} characters allowed.`);
   }
   
-  // Validate character set - allow letters, marks, numbers, punctuation, symbols, and spaces
-  // This covers international addresses while excluding problematic characters
-  if (!/^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(normalized)) {
-    throw new Error(`${fieldName} contains invalid characters. Only letters, numbers, punctuation, and spaces are allowed.`);
+  // Validate character set - allow letters, marks, numbers, punctuation, symbols, emojis, and spaces
+  // This covers international addresses, mathematical symbols, and emojis while excluding control characters
+  if (!/^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(normalized)) {
+    throw new Error(`${fieldName} contains invalid characters. Only letters, numbers, punctuation, symbols, emojis, and spaces are allowed.`);
   }
   
   return normalized;
@@ -152,19 +152,19 @@ const createAddressSchema = z.object({
   admin_token: z.string().optional().describe('Recharge admin token (optional, takes precedence over environment variable if provided)'),
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
   address1: z.string().min(1).max(255).describe('Street address (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Street address contains invalid characters"
     }),
   address2: z.string().max(255).optional().describe('Apartment, suite, etc. (supports international characters)')
-    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => val === undefined || val === '' || /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Address line 2 contains invalid characters"
     }),
   city: z.string().min(1).max(100).describe('City (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "City contains invalid characters"
     }),
   province: z.string().min(1).max(100).describe('State/Province (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Province/State contains invalid characters"
     }),
   zip: z.string().min(2).max(12).describe('ZIP/Postal code (international formats supported)')
@@ -172,15 +172,15 @@ const createAddressSchema = z.object({
       message: "Postal code format is invalid"
     }),
   country: z.string().min(2).max(100).describe('Country (full name or ISO code)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Country contains invalid characters"
     }),
   first_name: z.string().min(1).max(255).describe('First name (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "First name contains invalid characters"
     }),
   last_name: z.string().min(1).max(255).describe('Last name (supports international characters)')
-    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(val.trim()), {
+    .refine(val => /^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{So}\p{Sm}\p{Zs}]+$/u.test(val.trim()), {
       message: "Last name contains invalid characters"
     }),
   company: z.string().max(255).optional().describe('Company name (supports international characters)')
