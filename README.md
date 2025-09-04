@@ -448,13 +448,20 @@ DEBUG=true
 |----------|----------|-------------|---------|
 | `RECHARGE_STOREFRONT_DOMAIN` | Yes* | Your Shopify domain | `shop.myshopify.com` |
 | `RECHARGE_ADMIN_TOKEN` | Yes* | Admin API token for session creation | `your_admin_api_token_here` |
-| `RECHARGE_API_URL` | No | Recharge API endpoint (defaults to production) | `https://api.stage.rechargeapps.com` |
+| `RECHARGE_API_URL` | No | Recharge API endpoint (defaults to production, no fallback if invalid) | `https://api.stage.rechargeapps.com` |
 | `RECHARGE_SESSION_TOKEN` | No | Default customer session token | `st_abc123` |
 | `MCP_SERVER_NAME` | No | Server identification | `recharge-mcp` |
 | `MCP_SERVER_VERSION` | No | Server version | `1.0.0` |
 | `DEBUG` | No | Enable debug logging | `true` |
 
 *Required unless provided in each tool call
+
+### Important: API URL Behavior
+
+- **Default**: Uses production API (`https://api.rechargeapps.com`) when `RECHARGE_API_URL` is not set
+- **Custom URL**: Only uses alternative URL if explicitly specified and valid
+- **No Fallback**: If custom URL is invalid, server fails to start (prevents unintentional production changes)
+- **Security**: All URLs must use HTTPS protocol
 
 ### Per-Tool Configuration
 
@@ -945,6 +952,28 @@ export RECHARGE_STOREFRONT_DOMAIN=your-shop.myshopify.com
 # Incorrect: shop.com
 ```
 
+**Problem**: `Invalid RECHARGE_API_URL specified`
+```bash
+# Solution: Fix or remove the custom API URL
+# The server will NOT fall back to production to prevent unintentional changes
+
+# Option 1: Fix the URL format (must be HTTPS)
+# IMPORTANT: Only specify this for non-production environments
+# If invalid URL is specified, server will fail to start (no fallback to production)
+# This prevents unintentional production changes when intending to use staging/test
+# Production: https://api.rechargeapps.com (default - don't specify)
+# Staging: https://api.stage.rechargeapps.com
+# Sandbox: https://api.sandbox.rechargeapps.com
+#RECHARGE_API_URL=https://api.stage.rechargeapps.com
+
+# Option 2: Remove the setting to use production
+# Comment out or delete the RECHARGE_API_URL line in .env
+
+# Option 3: Use a valid staging/test URL
+# Staging: https://api.stage.rechargeapps.com
+# Sandbox: https://api.sandbox.rechargeapps.com
+```
+
 #### Unicode and Character Issues
 
 **Problem**: `Invalid characters in name/address`
@@ -1096,6 +1125,8 @@ Debug information includes:
 - **Automatic session renewal**: Expired sessions recreated transparently
 - **Parameter cleanup**: Sensitive parameters removed from API requests
 - **Unicode normalization**: Prevents encoding-based attacks
+- **API URL validation**: Custom URLs must use HTTPS, no fallback to production
+- **Fail-fast configuration**: Invalid settings caught at startup
 
 ### Reporting Security Issues
 
