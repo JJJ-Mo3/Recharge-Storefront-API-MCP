@@ -189,22 +189,134 @@ export const subscriptionTools = [
     description: 'Create a new subscription',
     inputSchema: createSubscriptionSchema,
     execute: async (client, args) => {
+      // Validate variant_id is positive
+      if (args.variant_id <= 0) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Invalid variant_id (${args.variant_id}). Variant ID must be a positive number greater than 0.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      
+      // Validate quantity is reasonable
+      if (args.quantity <= 0 || args.quantity > 1000) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Invalid quantity (${args.quantity}). Quantity must be between 1 and 1000.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      
+      // Validate next charge date is in the future
+      const nextChargeDate = new Date(args.next_charge_scheduled_at);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (nextChargeDate < today) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Next charge date must be in the future. Provided: ${args.next_charge_scheduled_at}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      
+      // Validate frequency combination
+      const totalDays = calculateTotalDays(args.order_interval_frequency, args.order_interval_unit);
+      if (totalDays > 365) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Subscription frequency too long (${totalDays} days). Maximum allowed is 365 days.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      
       const subscriptionData = { ...args };
       delete subscriptionData.customer_id;
       delete subscriptionData.customer_email;
       delete subscriptionData.session_token;
       delete subscriptionData.admin_token;
       delete subscriptionData.store_url;
-      const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email);
       
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Created Subscription:\n${JSON.stringify(subscription, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Created Subscription:\n${JSON.stringify(subscription, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        // Enhanced error handling for common subscription creation issues
+        if (error.message.includes('variant') || error.message.includes('product')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Product Variant Error: ${error.message}\n\nThe variant_id (${args.variant_id}) may not exist or may not be available for subscriptions.\n\nTips:\n- Use get_products to find valid variant IDs\n- Ensure the product variant exists in your store\n- Verify the variant is enabled for subscriptions\n- Check that the variant is not archived or deleted`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (error.message.includes('address')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Address Error: ${error.message}\n\nThe address_id (${args.address_id}) may not exist or may not belong to this customer.\n\nTips:\n- Use get_addresses to find valid address IDs\n- Ensure the address belongs to the customer\n- Create a new address if needed using create_address`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (error.message.includes('frequency') || error.message.includes('interval')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Subscription Frequency Error: ${error.message}\n\nValid combinations:\n- Daily: 1-90 days\n- Weekly: 1-52 weeks\n- Monthly: 1-12 months\n\nProvided: ${args.order_interval_frequency} ${args.order_interval_unit}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (error.message.includes('customer') || error.message.includes('session')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Customer Authentication Error: ${error.message}\n\nTips:\n- Verify the customer exists\n- Check that customer_id or customer_email is correct\n- Ensure proper authentication tokens are provided`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Re-throw for general error handling
+        throw error;
+      }
     },
   },
   {
