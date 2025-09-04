@@ -398,17 +398,6 @@ export function validateAuthParams(params) {
       if (urlObj.protocol !== 'https:') {
         throw new Error('API URL must use HTTPS protocol for security');
       }
-      
-      const allowedDomains = [
-        'api.rechargeapps.com',
-        'api.stage.rechargeapps.com', 
-        'api.sandbox.rechargeapps.com',
-        'api.dev.rechargeapps.com'
-      ];
-      
-      if (!allowedDomains.includes(urlObj.hostname)) {
-        throw new Error(`Invalid API URL domain: ${urlObj.hostname}. Must be one of: ${allowedDomains.join(', ')}`);
-      }
     } catch (urlError) {
       throw new Error(`Invalid API URL format: ${params.api_url}`);
     }

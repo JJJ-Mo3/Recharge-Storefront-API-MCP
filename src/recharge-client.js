@@ -87,19 +87,6 @@ export class RechargeClient {
         return null;
       }
       
-      // Whitelist allowed Recharge domains
-      const allowedDomains = [
-        'api.rechargeapps.com',           // Production
-        'api.stage.rechargeapps.com',     // Staging
-        'api.sandbox.rechargeapps.com',   // Sandbox
-        'api.dev.rechargeapps.com'        // Development
-      ];
-      
-      if (!allowedDomains.includes(urlObj.hostname)) {
-        console.warn(`[WARNING] API URL domain not allowed: ${urlObj.hostname}. Must be one of: ${allowedDomains.join(', ')}. Falling back to default.`);
-        return null;
-      }
-      
       // Ensure no path manipulation
       if (urlObj.pathname !== '/' && urlObj.pathname !== '') {
         console.warn('[WARNING] API URL should not contain path components. Falling back to default.');
