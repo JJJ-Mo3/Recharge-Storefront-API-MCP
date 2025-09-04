@@ -36,10 +36,10 @@ const updateSubscriptionSchema = z.object({
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
   subscription_id: z.string().describe('The subscription ID'),
   next_charge_scheduled_at: z.string().optional().describe('Next charge date (ISO format)'),
-  order_interval_frequency: z.number().optional().describe('Order interval frequency (e.g., 1, 2, 3)'),
+  order_interval_frequency: z.number().min(1).max(365).optional().describe('Order interval frequency (1-365, e.g., 1, 2, 3)'),
   order_interval_unit: z.enum(['day', 'week', 'month']).optional().describe('Order interval unit'),
-  quantity: z.number().optional().describe('Subscription quantity'),
-  variant_id: z.number().optional().describe('Product variant ID'),
+  quantity: z.number().min(1).max(1000).optional().describe('Subscription quantity (1-1000)'),
+  variant_id: z.number().min(1).optional().describe('Product variant ID'),
   properties: z.array(z.object({
     name: z.string(),
     value: z.string(),
@@ -50,6 +50,32 @@ const updateSubscriptionSchema = z.object({
   return updateFields.some(field => data[field] !== undefined);
 }, {
   message: "At least one field to update must be provided"
+}).refine(data => {
+  // If order_interval_frequency is provided, order_interval_unit should also be provided for clarity
+  if (data.order_interval_frequency !== undefined && data.order_interval_unit === undefined) {
+    return false;
+  }
+  return true;
+}, {
+  message: "When updating order_interval_frequency, order_interval_unit should also be specified for clarity"
+}).refine(data => {
+  // Validate frequency ranges based on unit
+  if (data.order_interval_frequency !== undefined && data.order_interval_unit !== undefined) {
+    const { order_interval_frequency: freq, order_interval_unit: unit } = data;
+    
+    if (unit === 'day' && (freq < 1 || freq > 90)) {
+      return false; // Daily: 1-90 days max
+    }
+    if (unit === 'week' && (freq < 1 || freq > 52)) {
+      return false; // Weekly: 1-52 weeks max
+    }
+    if (unit === 'month' && (freq < 1 || freq > 12)) {
+      return false; // Monthly: 1-12 months max
+    }
+  }
+  return true;
+}, {
+  message: "Invalid frequency range: Daily (1-90), Weekly (1-52), Monthly (1-12)"
 });
 
 const skipSubscriptionSchema = z.object({
@@ -204,6 +230,49 @@ export const subscriptionTools = [
     description: 'Update subscription details like frequency, quantity, or next charge date',
     inputSchema: updateSubscriptionSchema,
     execute: async (client, args) => {
+      // Additional business logic validation
+      const { subscription_id, order_interval_frequency, order_interval_unit, quantity, variant_id, next_charge_scheduled_at } = args;
+      
+      // Validate next charge date is in the future
+      if (next_charge_scheduled_at) {
+        const nextChargeDate = new Date(next_charge_scheduled_at);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        if (nextChargeDate < today) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Next charge date must be in the future. Provided: ${next_charge_scheduled_at}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+      
+      // Validate frequency combination makes sense
+      if (order_interval_frequency && order_interval_unit) {
+        const totalDays = calculateTotalDays(order_interval_frequency, order_interval_unit);
+        if (totalDays > 365) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Subscription frequency too long (${totalDays} days). Maximum allowed is 365 days.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Warn about very short frequencies
+        if (totalDays < 7) {
+          console.warn(`Warning: Very short subscription frequency (${totalDays} days) may cause billing issues.`);
+        }
+      }
+      
       const { subscription_id } = args;
       const updateData = { ...args };
       delete updateData.subscription_id;
@@ -212,16 +281,59 @@ export const subscriptionTools = [
       delete updateData.session_token;
       delete updateData.admin_token;
       delete updateData.store_url;
-      const updatedSubscription = await client.updateSubscription(subscription_id, updateData, args.customer_id, args.customer_email);
       
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Updated Subscription:\n${JSON.stringify(updatedSubscription, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const updatedSubscription = await client.updateSubscription(subscription_id, updateData, args.customer_id, args.customer_email);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Updated Subscription:\n${JSON.stringify(updatedSubscription, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        // Enhanced error handling for common subscription update issues
+        if (error.message.includes('frequency') || error.message.includes('interval')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Subscription Frequency Error: ${error.message}\n\nValid combinations:\n- Daily: 1-90 days\n- Weekly: 1-52 weeks\n- Monthly: 1-12 months\n\nExample: order_interval_frequency=2, order_interval_unit="week" for every 2 weeks`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (error.message.includes('variant') || error.message.includes('product')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Product Variant Error: ${error.message}\n\nTip: Ensure the variant_id exists and is available for subscriptions. Use get_products to find valid variant IDs.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (error.message.includes('quantity')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Quantity Error: ${error.message}\n\nTip: Quantity must be between 1 and 1000. Check inventory limits for this product.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        // Re-throw for general error handling
+        throw error;
+      }
     },
   },
   {
@@ -347,3 +459,22 @@ export const subscriptionTools = [
     },
   },
 ];
+
+/**
+ * Helper function to calculate total days from frequency and unit
+ * @param {number} frequency - The frequency number
+ * @param {string} unit - The unit (day, week, month)
+ * @returns {number} Total days
+ */
+function calculateTotalDays(frequency, unit) {
+  switch (unit) {
+    case 'day':
+      return frequency;
+    case 'week':
+      return frequency * 7;
+    case 'month':
+      return frequency * 30; // Approximate for validation
+    default:
+      return 0;
+  }
+}
