@@ -101,7 +101,7 @@
     console.log(`✅ Using token: ${adminToken}`);
     console.log(`✅ Using store URL: ${finalStoreUrl}`);
   } catch (error) {
-    console.log(`✅ Expected error: ${error.message}`);
+    // console.log(`✅ Expected error: ${error.message}`);
   }
 
   // Test 5: Tool parameters override empty environment
