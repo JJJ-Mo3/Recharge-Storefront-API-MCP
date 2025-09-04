@@ -273,7 +273,6 @@ export const subscriptionTools = [
         }
       }
       
-      const { subscription_id } = args;
       const updateData = { ...args };
       delete updateData.subscription_id;
       delete updateData.customer_id;
