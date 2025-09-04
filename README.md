@@ -12,9 +12,12 @@ A comprehensive Model Context Protocol (MCP) server that provides complete acces
 - [Usage](#usage)
 - [Available Tools](#available-tools)
 - [Usage Examples](#usage-examples)
+- [Unicode and International Support](#unicode-and-international-support)
 - [Development](#development)
+- [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 - [Security](#security)
+- [Performance](#performance)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -37,6 +40,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 - **Production Ready**: Error handling, logging, and monitoring
 - **Developer Friendly**: Comprehensive documentation, examples, and debugging tools
 - **Secure**: Built-in security protections and customer data isolation
+- **International Support**: Full Unicode support for global customers
 
 ## Features
 
@@ -64,6 +68,8 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 - **Debug Mode**: Extensive logging for development and troubleshooting
 - **Input Validation**: Zod schema validation for all tool parameters
 - **Security Protection**: Prevents accidental customer data exposure
+- **Unicode Support**: Full international character support for names and addresses
+- **Business Rule Validation**: Prevents invalid subscription configurations
 
 ## Installation
 
@@ -116,6 +122,9 @@ npm run validate
 
 # Check API coverage
 npm run coverage
+
+# Run comprehensive tests
+npm run test
 ```
 
 ## Authentication
@@ -251,7 +260,6 @@ Handle multiple customers seamlessly:
 {"name": "get_addresses", "arguments": {"customer_email": "alice@example.com"}}
 ```
 
-
 The server includes built-in security protections:
 
 #### Preventing Wrong Customer Data
@@ -272,132 +280,6 @@ The server includes built-in security protections:
 ```
 Security Error: Cannot use default session token when customer-specific sessions exist. 
 Please specify 'customer_id', 'customer_email', or 'session_token' to ensure correct customer data access.
-```
-
-## Usage Examples
-
-### 1. Basic Customer Operations
-
-#### Customer Lookup
-```json
-// Find customer by email
-{
-  "name": "get_customer_by_email",
-  "arguments": {
-    "email": "customer@example.com"
-  }
-}
-
-// Get customer details with automatic session creation
-{
-  "name": "get_customer",
-  "arguments": {
-    "customer_email": "customer@example.com"
-  }
-}
-
-// Update customer information
-{
-  "name": "update_customer",
-  "arguments": {
-    "customer_email": "customer@example.com",
-    "first_name": "John",
-    "last_name": "Smith",
-    "phone": "+1-555-123-4567"
-  }
-}
-```
-
-### 2. Customer Service Workflow
-
-```json
-// 1. Look up customer
-{
-  "name": "get_customer",
-  "arguments": {"customer_email": "customer@example.com"}
-}
-
-// 2. Check their subscriptions
-{
-  "name": "get_subscriptions",
-  "arguments": {"customer_email": "customer@example.com"}
-}
-
-// 3. View recent orders
-{
-  "name": "get_orders",
-  "arguments": {"customer_email": "customer@example.com"}
-}
-```
-
-### 3. Subscription Management Workflow
-
-```json
-// 1. Get subscription details
-{
-  "name": "get_subscription",
-  "arguments": {
-    "customer_email": "customer@example.com",
-    "subscription_id": "sub_123"
-  }
-}
-
-// 2. Skip next delivery
-{
-  "name": "skip_subscription",
-  "arguments": {
-    "customer_email": "customer@example.com",
-    "subscription_id": "sub_123",
-    "date": "2024-02-15"
-  }
-}
-
-// 3. Add one-time product to next delivery
-{
-  "name": "create_onetime",
-  "arguments": {
-    "customer_email": "customer@example.com",
-    "variant_id": 789012,
-    "quantity": 1,
-    "next_charge_scheduled_at": "2024-02-15"
-  }
-}
-```
-
-### 4. Advanced Multi-Customer Operations
-
-```json
-// Customer A operations
-{"name": "get_subscriptions", "arguments": {"customer_email": "alice@example.com"}}
-
-// Customer B operations  
-{"name": "get_orders", "arguments": {"customer_email": "bob@example.com"}}
-
-// Back to Customer A (reuses cached session)
-{"name": "get_addresses", "arguments": {"customer_email": "alice@example.com"}}
-```
-
-### 5. Error Handling and Troubleshooting
-
-```json
-// This will fail with helpful error message
-{
-  "name": "get_subscription", 
-  "arguments": {
-    "subscription_id": "invalid_id"
-  }
-}
-
-// Error response:
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "API Error (404): Subscription not found\n\nTip: Verify the resource ID exists and you have access to it."
-    }
-  ],
-  "isError": true
-}
 ```
 
 ## Configuration
@@ -707,6 +589,187 @@ DEBUG=true npm start
 | `apply_discount` | Apply discount code | `discount_code` |
 | `remove_discount` | Remove discount | `discount_id` |
 
+## Usage Examples
+
+### 1. Basic Customer Operations
+
+#### Customer Lookup
+```json
+// Find customer by email
+{
+  "name": "get_customer_by_email",
+  "arguments": {
+    "email": "customer@example.com"
+  }
+}
+
+// Get customer details with automatic session creation
+{
+  "name": "get_customer",
+  "arguments": {
+    "customer_email": "customer@example.com"
+  }
+}
+
+// Update customer information with Unicode support
+{
+  "name": "update_customer",
+  "arguments": {
+    "customer_email": "customer@example.com",
+    "first_name": "José",
+    "last_name": "García",
+    "phone": "+34-123-456-789"
+  }
+}
+```
+
+### 2. Customer Service Workflow
+
+```json
+// 1. Look up customer
+{
+  "name": "get_customer",
+  "arguments": {"customer_email": "customer@example.com"}
+}
+
+// 2. Check their subscriptions
+{
+  "name": "get_subscriptions",
+  "arguments": {"customer_email": "customer@example.com"}
+}
+
+// 3. View recent orders
+{
+  "name": "get_orders",
+  "arguments": {"customer_email": "customer@example.com"}
+}
+```
+
+### 3. Subscription Management Workflow
+
+```json
+// 1. Get subscription details
+{
+  "name": "get_subscription",
+  "arguments": {
+    "customer_email": "customer@example.com",
+    "subscription_id": "sub_123"
+  }
+}
+
+// 2. Skip next delivery
+{
+  "name": "skip_subscription",
+  "arguments": {
+    "customer_email": "customer@example.com",
+    "subscription_id": "sub_123",
+    "date": "2024-02-15"
+  }
+}
+
+// 3. Add one-time product to next delivery
+{
+  "name": "create_onetime",
+  "arguments": {
+    "customer_email": "customer@example.com",
+    "variant_id": 789012,
+    "quantity": 1,
+    "next_charge_scheduled_at": "2024-02-15"
+  }
+}
+```
+
+### 4. Advanced Multi-Customer Operations
+
+```json
+// Customer A operations
+{"name": "get_subscriptions", "arguments": {"customer_email": "alice@example.com"}}
+
+// Customer B operations  
+{"name": "get_orders", "arguments": {"customer_email": "bob@example.com"}}
+
+// Back to Customer A (reuses cached session)
+{"name": "get_addresses", "arguments": {"customer_email": "alice@example.com"}}
+```
+
+### 5. Error Handling and Troubleshooting
+
+```json
+// This will fail with helpful error message
+{
+  "name": "get_subscription", 
+  "arguments": {
+    "subscription_id": "invalid_id"
+  }
+}
+
+// Error response:
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "API Error (404): Subscription not found\n\nTip: Verify the resource ID exists and you have access to it."
+    }
+  ],
+  "isError": true
+}
+```
+
+## Unicode and International Support
+
+### Full Unicode Support
+
+The server provides comprehensive Unicode support for international customers:
+
+#### Customer Names
+- **Unicode Normalization**: NFC normalization for consistent storage
+- **International Characters**: Support for letters, marks, numbers from all languages
+- **Character Validation**: Prevents control characters while allowing proper Unicode
+- **Length Limits**: 255 characters maximum for names
+
+#### International Addresses
+- **Address Fields**: Full Unicode support for street addresses, cities, provinces
+- **Postal Codes**: Country-specific validation for US, Canada, UK formats
+- **Phone Numbers**: International E.164 format support
+- **Character Encoding**: Proper handling of special characters and diacritics
+
+#### Validation Features
+- **NFC Normalization**: Canonical decomposition and composition
+- **Control Character Removal**: Strips problematic characters
+- **Whitespace Normalization**: Consistent spacing handling
+- **Length Validation**: Appropriate limits for each field type
+
+#### Examples
+
+```json
+// International customer update
+{
+  "name": "update_customer",
+  "arguments": {
+    "customer_email": "müller@example.de",
+    "first_name": "François",
+    "last_name": "Müller",
+    "phone": "+49-30-12345678"
+  }
+}
+
+// International address creation
+{
+  "name": "create_address",
+  "arguments": {
+    "customer_email": "tanaka@example.jp",
+    "first_name": "田中",
+    "last_name": "太郎",
+    "address1": "東京都渋谷区神南1-2-3",
+    "city": "東京",
+    "province": "東京都",
+    "zip": "150-0041",
+    "country": "Japan",
+    "phone": "+81-3-1234-5678"
+  }
+}
+```
+
 ## Development
 
 ### Development Setup
@@ -780,6 +843,69 @@ Debug output includes:
 - Error stack traces
 - Performance metrics
 
+## Testing
+
+### Available Test Commands
+
+```bash
+# Run all tests
+npm run test
+
+# Run comprehensive test suite
+npm run test:full
+
+# Validate API key logic
+npm run test:api-keys
+
+# Check syntax and configuration
+npm run validate
+
+# View API coverage
+npm run coverage
+```
+
+### Test Categories
+
+#### 1. Syntax and Configuration Tests
+- Node.js version validation
+- Package.json integrity
+- Environment file validation
+- Source file syntax checking
+
+#### 2. API Integration Tests
+- Authentication flow validation
+- Session management testing
+- Error handling verification
+- Unicode support validation
+
+#### 3. Business Logic Tests
+- Subscription frequency validation
+- Variant existence checking
+- Address format validation
+- Customer data handling
+
+#### 4. Security Tests
+- Token handling validation
+- Customer data isolation
+- Input sanitization
+- Error message security
+
+### Running Specific Tests
+
+```bash
+# Test environment setup
+npm run test:api-keys
+
+# Validate all configurations
+npm run validate
+
+# Check project health
+npm run health
+
+# Test MCP protocol startup
+npm run mcp:test
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -813,6 +939,43 @@ export RECHARGE_STOREFRONT_DOMAIN=your-shop.myshopify.com
 # Solution: Use correct Shopify domain format
 # Correct: shop.myshopify.com
 # Incorrect: shop.com
+```
+
+#### Unicode and Character Issues
+
+**Problem**: `Invalid characters in name/address`
+```bash
+# Solution: Use proper Unicode characters
+# Allowed: Letters, numbers, spaces, punctuation
+# Avoid: Control characters, special symbols
+# Use international formats for phone numbers
+```
+
+**Problem**: `Postal code format invalid`
+```bash
+# Solution: Use country-specific formats
+# US: 12345 or 12345-6789
+# Canada: A1A 1A1 or A1A1A1
+# UK: SW1A 1AA or M1 1AA
+```
+
+#### Subscription Issues
+
+**Problem**: `Invalid subscription frequency`
+```bash
+# Solution: Use valid frequency ranges
+# Daily: 1-90 days
+# Weekly: 1-52 weeks  
+# Monthly: 1-12 months
+# Maximum total: 365 days
+```
+
+**Problem**: `Variant not found or not subscription-enabled`
+```bash
+# Solution: Validate variant exists and is configured
+# Use get_products to find valid variants
+# Ensure product is enabled for subscriptions
+# Check storefront_purchase_options setting
 ```
 
 #### Redirect Issues
@@ -879,6 +1042,7 @@ Debug information includes:
 - Customer session token creation and caching
 - Error stack traces
 - Performance metrics
+- Unicode normalization details
 
 ### Getting Help
 
@@ -887,6 +1051,7 @@ Debug information includes:
 3. **Validate Setup**: Run `npm run validate`
 4. **Test API Keys**: Run `npm run test:api-keys`
 5. **Check Coverage**: Run `npm run coverage`
+6. **Run Full Tests**: Run `npm run test:full`
 
 ## Security
 
@@ -910,6 +1075,12 @@ Debug information includes:
 - **Monitor API usage** for anomalies
 - **Be aware of Recharge API rate limits**
 
+#### Unicode Security
+- **Normalize Unicode input** to prevent encoding attacks
+- **Validate character sets** to prevent injection
+- **Sanitize control characters** from user input
+- **Use proper encoding** for international data
+
 ### Security Features
 
 #### Built-in Protections
@@ -920,10 +1091,42 @@ Debug information includes:
 - **Session token caching**: Secure in-memory session management
 - **Automatic session renewal**: Expired sessions recreated transparently
 - **Parameter cleanup**: Sensitive parameters removed from API requests
+- **Unicode normalization**: Prevents encoding-based attacks
 
 ### Reporting Security Issues
 
 For security issues, please follow responsible disclosure practices and contact the project maintainers directly.
+
+## Performance
+
+### Performance Features
+
+#### Session Management
+- **Intelligent Caching**: Customer sessions cached to avoid repeated API calls
+- **Automatic Renewal**: Expired sessions renewed transparently
+- **Multi-Customer Support**: Efficient handling of multiple customer sessions
+
+#### Request Optimization
+- **Connection Pooling**: Axios instances with optimized connection handling
+- **Request Timeouts**: 30-second timeouts prevent hanging requests
+- **Error Recovery**: Automatic retry for expired session tokens
+
+#### Memory Management
+- **Efficient Caching**: In-memory session cache with automatic cleanup
+- **Unicode Normalization**: Optimized Unicode processing
+- **Garbage Collection**: Proper cleanup of expired sessions
+
+#### Monitoring
+- **Debug Logging**: Comprehensive performance metrics when enabled
+- **Request Tracking**: Monitor API call patterns and response times
+- **Error Tracking**: Track error rates and types
+
+### Performance Tips
+
+1. **Reuse Customer Sessions**: Use the same customer email/ID for related operations
+2. **Enable Caching**: Let the server cache customer sessions automatically
+3. **Batch Operations**: Group related operations for the same customer
+4. **Monitor Debug Output**: Use `DEBUG=true` to identify performance bottlenecks
 
 ## Contributing
 
@@ -931,9 +1134,20 @@ Contributions are welcome! When contributing:
 
 - **Follow existing patterns**: Use the established code structure and naming conventions
 - **Add proper validation**: Use Zod schemas for all new tool parameters
-- **Test thoroughly**: Run `npm run validate` before submitting changes
+- **Test thoroughly**: Run `npm run test:full` before submitting changes
 - **Update documentation**: Keep the README current with any changes
 - **Handle errors properly**: Use the existing error handling patterns
+- **Support Unicode**: Ensure international character support in new features
+- **Add business validation**: Include appropriate business rule validation
+
+### Development Guidelines
+
+1. **Code Quality**: Follow existing patterns and use proper TypeScript/JSDoc
+2. **Testing**: Add tests for new functionality
+3. **Documentation**: Update README and inline documentation
+4. **Security**: Follow security best practices
+5. **Performance**: Consider performance implications of changes
+6. **Unicode Support**: Ensure proper international character handling
 
 ## License
 
@@ -947,18 +1161,22 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Documentation**: This README and comprehensive inline code documentation
 - **Examples**: Complete usage examples throughout this README
 - **Debug Mode**: Detailed logging for troubleshooting
+- **Test Suite**: Comprehensive testing tools
 
 ### Getting Help
 - **Debug Mode**: Enable with `DEBUG=true` for troubleshooting
 - **Validation**: Run `npm run validate` to check setup
 - **Coverage**: Run `npm run coverage` to see API coverage
+- **Full Tests**: Run `npm run test:full` for comprehensive testing
 
 ### Project Statistics
 - **37 Tools**: Complete Recharge Storefront API coverage
 - **10 Categories**: Comprehensive subscription management
 - **Production Ready**: Error handling, logging, and monitoring
 - **Secure**: Built-in customer data protection with session token isolation
+- **International**: Full Unicode support for global customers
 - **Well Documented**: Comprehensive guides and examples
+- **Thoroughly Tested**: Comprehensive test suite with multiple validation layers
 
 ---
 
