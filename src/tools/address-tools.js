@@ -343,7 +343,7 @@ export const addressTools = [
           content: [
             {
               type: 'text',
-              text: `Address Validation Error: ${validationError.message}\n\nTips for international addresses:\n- Use proper Unicode characters (letters, numbers, spaces)\n- Avoid control characters or special symbols\n- Maximum lengths: Address (255), City/Province (100), Names (255)\n- Postal codes: 2-12 characters, alphanumeric with spaces/hyphens\n- Phone numbers: International format (+1-555-123-4567)\n\nCountry-specific postal code formats:\n- US: 12345 or 12345-6789\n- Canada: A1A 1A1 or A1A1A1\n- UK: SW1A 1AA or M1 1AA`,
+              text: `Address Validation Error: ${validationError.message}\n\nTips for international addresses:\n- Use proper Unicode characters (letters, numbers, spaces)\n- Basic punctuation allowed: hyphens (-), periods (.), apostrophes (')\n- Emojis and special symbols are NOT supported by shipping providers\n- Maximum lengths: Address (255), City/Province (100), Names (255)\n- Postal codes: 2-12 characters, alphanumeric with spaces/hyphens\n- Phone numbers: International format (+1-555-123-4567)\n\nCountry-specific postal code formats:\n- US: 12345 or 12345-6789\n- Canada: A1A 1A1 or A1A1A1\n- UK: SW1A 1AA or M1 1AA`,
             },
           ],
           isError: true,
@@ -423,7 +423,7 @@ export const addressTools = [
           content: [
             {
               type: 'text',
-              text: `Address Validation Error: ${validationError.message}\n\nTips for international addresses:\n- Use proper Unicode characters (letters, numbers, spaces)\n- Avoid control characters or special symbols\n- Maximum lengths: Address (255), City/Province (100), Names (255)\n- Postal codes: 2-12 characters, alphanumeric with spaces/hyphens\n- Phone numbers: International format (+1-555-123-4567)\n\nCountry-specific postal code formats:\n- US: 12345 or 12345-6789\n- Canada: A1A 1A1 or A1A1A1\n- UK: SW1A 1AA or M1 1AA`,
+              text: `Address Validation Error: ${validationError.message}\n\nTips for international addresses:\n- Use proper Unicode characters (letters, numbers, spaces)\n- Basic punctuation allowed: hyphens (-), periods (.), apostrophes (')\n- Emojis and special symbols are NOT supported by shipping providers\n- Maximum lengths: Address (255), City/Province (100), Names (255)\n- Postal codes: 2-12 characters, alphanumeric with spaces/hyphens\n- Phone numbers: International format (+1-555-123-4567)\n\nCountry-specific postal code formats:\n- US: 12345 or 12345-6789\n- Canada: A1A 1A1 or A1A1A1\n- UK: SW1A 1AA or M1 1AA`,
             },
           ],
           isError: true,
