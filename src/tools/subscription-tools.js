@@ -272,6 +272,95 @@ export const subscriptionTools = [
       delete subscriptionData.admin_token;
       delete subscriptionData.store_url;
       
+      // Pre-validate variant existence before attempting subscription creation
+      try {
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Pre-validating variant ${args.variant_id} exists`);
+        }
+        
+        // Get products to validate variant exists
+        const products = await client.getProducts({ limit: 250 }, args.customer_id, args.customer_email);
+        
+        if (!products || !products.products || !Array.isArray(products.products)) {
+          throw new Error('Unable to validate variant - product catalog unavailable');
+        }
+        
+        // Check if variant exists in any product
+        let variantFound = false;
+        let productTitle = '';
+        let variantTitle = '';
+        let isSubscriptionEnabled = false;
+        
+        for (const product of products.products) {
+          if (product.variants && Array.isArray(product.variants)) {
+            for (const variant of product.variants) {
+              if (variant.shopify_variant_id === args.variant_id || variant.id === args.variant_id) {
+                variantFound = true;
+                productTitle = product.title || 'Unknown Product';
+                variantTitle = variant.title || 'Default Title';
+                
+                // Check if product/variant is subscription enabled
+                isSubscriptionEnabled = product.subscription_defaults && 
+                  product.subscription_defaults.storefront_purchase_options && 
+                  (product.subscription_defaults.storefront_purchase_options === 'subscription_only' || 
+                   product.subscription_defaults.storefront_purchase_options === 'subscription_and_onetime');
+                
+                break;
+              }
+            }
+            if (variantFound) break;
+          }
+        }
+        
+        if (!variantFound) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Variant Validation Error: Variant ID ${args.variant_id} does not exist in your product catalog.\n\nTroubleshooting:\n1. Use get_products to see all available variants\n2. Check that the variant ID is correct\n3. Ensure the product hasn't been deleted or archived\n4. Verify you're using the correct variant ID format (Shopify variant ID)\n\nTip: Look for 'shopify_variant_id' or 'id' fields in the product variants list.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (!isSubscriptionEnabled) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Subscription Configuration Error: Product "${productTitle}" (Variant: "${variantTitle}") is not enabled for subscriptions.\n\nProduct Details:\n- Product: ${productTitle}\n- Variant: ${variantTitle}\n- Variant ID: ${args.variant_id}\n\nTo fix this:\n1. Enable subscriptions for this product in your Recharge admin\n2. Set storefront_purchase_options to 'subscription_only' or 'subscription_and_onetime'\n3. Configure subscription defaults for the product\n\nAlternatively, choose a different variant that supports subscriptions.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Variant validation passed: ${productTitle} - ${variantTitle} (ID: ${args.variant_id})`);
+        }
+        
+      } catch (validationError) {
+        // If validation fails due to API issues, log warning but continue
+        // This prevents validation failures from blocking legitimate subscription creation
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Variant pre-validation failed, continuing with subscription creation:`, validationError.message);
+        }
+        
+        // Only return error if it's a clear validation failure, not an API issue
+        if (validationError.message && validationError.message.includes('does not exist')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: validationError.message,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+      
       try {
         const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email);
         
