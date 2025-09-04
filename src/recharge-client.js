@@ -32,9 +32,12 @@ export class RechargeClient {
     this.adminToken = adminToken;
     this.sessionCache = new SessionCache();
 
+    // Get API URL from environment variable or use production default
+    const apiUrl = process.env.RECHARGE_API_URL || 'https://api.rechargeapps.com';
+
     // Create axios instances
     this.storefrontApi = axios.create({
-      baseURL: 'https://api.rechargeapps.com',
+      baseURL: apiUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +46,7 @@ export class RechargeClient {
     });
 
     this.adminApi = axios.create({
-      baseURL: 'https://api.rechargeapps.com',
+      baseURL: apiUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
