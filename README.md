@@ -19,6 +19,12 @@ A comprehensive Model Context Protocol (MCP) server that provides complete acces
 - [Security](#security)
 - [Performance](#performance)
 - [Contributing](#contributing)
+- [Development](#development)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Security](#security)
+- [Performance](#performance)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
