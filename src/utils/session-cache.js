@@ -16,7 +16,14 @@ export class SessionCache {
    */
   getSessionToken(customerId) {
     const session = this.sessions.get(customerId);
-    return session ? session.token : null;
+    if (!session) {
+      return null;
+    }
+    
+    // Update last used timestamp
+    session.lastUsed = new Date();
+    
+    return session.token;
   }
 
   /**
@@ -42,10 +49,15 @@ export class SessionCache {
       throw new Error('Customer ID cannot be empty');
     }
     
-    this.sessions.set(customerId, {
+    // Store with timestamp for expiry tracking
+    const sessionData = {
       token: sessionToken,
-      email
-    });
+      email,
+      createdAt: new Date(),
+      lastUsed: new Date()
+    };
+    
+    this.sessions.set(customerId, sessionData);
 
     // Cache email -> customer_id mapping if email provided
     if (email && typeof email === 'string' && email.trim() !== '') {
@@ -164,9 +176,48 @@ export class SessionCache {
    * @returns {Object} Cache statistics
    */
   getStats() {
+    const now = new Date();
+    let oldestSession = null;
+    let newestSession = null;
+    
+    for (const [customerId, sessionData] of this.sessions) {
+      if (!oldestSession || sessionData.createdAt < oldestSession) {
+        oldestSession = sessionData.createdAt;
+      }
+      if (!newestSession || sessionData.createdAt > newestSession) {
+        newestSession = sessionData.createdAt;
+      }
+    }
+    
     return {
       totalSessions: this.sessions.size,
-      emailMappings: this.emailToCustomerId.size
+      emailMappings: this.emailToCustomerId.size,
+      oldestSessionAge: oldestSession ? Math.floor((now - oldestSession) / 1000) : null,
+      newestSessionAge: newestSession ? Math.floor((now - newestSession) / 1000) : null
     };
+  }
+
+  /**
+   * Clean up old sessions (optional maintenance method)
+   * @param {number} maxAgeSeconds - Maximum age in seconds (default: 1 hour)
+   */
+  cleanupOldSessions(maxAgeSeconds = 3600) {
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - (maxAgeSeconds * 1000));
+    
+    let cleanedCount = 0;
+    
+    for (const [customerId, sessionData] of this.sessions) {
+      if (sessionData.createdAt < cutoffTime) {
+        this.clearSession(customerId);
+        cleanedCount++;
+      }
+    }
+    
+    if (process.env.DEBUG === 'true' && cleanedCount > 0) {
+      console.error(`[DEBUG] Cleaned up ${cleanedCount} old sessions`);
+    }
+    
+    return cleanedCount;
   }
 }
