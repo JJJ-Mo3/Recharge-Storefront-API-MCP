@@ -317,17 +317,14 @@ Edit your Claude Desktop configuration file:
 }
 ```
 
-#### Cursor IDE
-
-1. **Install the MCP extension** (if available) or configure manually
-2. **Add to Cursor settings** (`Ctrl/Cmd + ,`):
+**If you experience JSON-RPC or timeout issues with Claude Desktop**, try this alternative configuration:
 
 ```json
 {
-  "mcp.servers": {
+  "mcpServers": {
     "recharge-storefront-api": {
       "command": "node",
-      "args": ["path/to/recharge-storefront-api-mcp/src/server.js"],
+      "args": ["index.js"],
       "cwd": "path/to/recharge-storefront-api-mcp",
       "env": {
         "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
@@ -338,7 +335,49 @@ Edit your Claude Desktop configuration file:
 }
 ```
 
-3. **Alternative: Use .env file** and simpler config:
+#### Cursor IDE
+
+1. **Install the MCP extension** (if available) or configure manually
+2. **Add to Cursor settings** (`Ctrl/Cmd + ,`):
+
+```json
+{
+  "mcp.servers": {
+    "recharge-storefront-api": {
+      "command": "node",
+      "args": ["src/server.js"],
+      "cwd": "path/to/recharge-storefront-api-mcp",
+      "env": {
+        "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
+        "RECHARGE_ADMIN_TOKEN": "your_admin_token_here"
+      }
+    }
+  }
+}
+```
+
+3. **If you experience MCP protocol issues in Cursor**, create a simple wrapper script:
+
+Create `run-server.js` in your project root:
+```javascript
+#!/usr/bin/env node
+import('./src/server.js').catch(console.error);
+```
+
+Then use this configuration:
+```json
+{
+  "mcp.servers": {
+    "recharge-storefront-api": {
+      "command": "node",
+      "args": ["run-server.js"],
+      "cwd": "path/to/recharge-storefront-api-mcp"
+    }
+  }
+}
+```
+
+4. **Alternative: Use .env file** and simpler config:
 
 ```json
 {
@@ -349,6 +388,41 @@ Edit your Claude Desktop configuration file:
       "cwd": "path/to/recharge-storefront-api-mcp"
     }
   }
+}
+```
+
+#### GPT-5 and OpenAI Clients
+
+For GPT-5 and other OpenAI-based MCP clients:
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "recharge-storefront-api",
+      "command": "node",
+      "args": ["index.js"],
+      "cwd": "path/to/recharge-storefront-api-mcp",
+      "env": {
+        "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
+        "RECHARGE_ADMIN_TOKEN": "your_admin_token_here"
+      }
+    }
+  ]
+}
+```
+
+**If experiencing protocol issues**, try using the main entry point:
+```json
+{
+  "mcpServers": [
+    {
+      "name": "recharge-storefront-api",
+      "command": "node",
+      "args": ["src/server.js"],
+      "cwd": "path/to/recharge-storefront-api-mcp"
+    }
+  ]
 }
 ```
 
@@ -416,7 +490,53 @@ For any MCP-compatible client:
 - **Environment Variables**: Set in client config or .env file
 - **Protocol**: stdio (standard input/output)
 
-#### Configuration Tips
+#### Troubleshooting MCP Client Issues
+
+**Common Issue**: JSON-RPC or timeout errors across different MCP clients (Claude Desktop, Cursor, GPT-5, etc.)
+
+**Root Cause**: Different MCP clients implement the protocol with slight variations, causing compatibility issues with the JSON-RPC transport layer.
+
+**Solutions** (try in order):
+
+1. **Use the main entry point** (`index.js` instead of `src/server.js`):
+   ```json
+   "args": ["index.js"]
+   ```
+
+2. **Create a wrapper script** (`run-server.js`):
+   ```javascript
+   #!/usr/bin/env node
+   import('./src/server.js').catch(console.error);
+   ```
+   Then use: `"args": ["run-server.js"]`
+
+3. **Use direct stdio execution**:
+   ```bash
+   # Test the server directly
+   echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node src/server.js
+   ```
+
+4. **Enable debug mode** to see detailed protocol communication:
+   ```json
+   "env": {
+     "DEBUG": "true",
+     "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
+     "RECHARGE_ADMIN_TOKEN": "your_admin_token_here"
+   }
+   ```
+
+5. **Verify server startup** independently:
+   ```bash
+   cd path/to/recharge-storefront-api-mcp
+   npm start
+   # Should show: [INFO] Server ready - listening for MCP requests
+   ```
+
+**Why This Happens**: The MCP specification is still evolving, and different AI platforms implement it with slight variations in their JSON-RPC handling, timeout mechanisms, and transport layers.
+
+**Best Practice**: Start with the simplest configuration (`node src/server.js`) and add complexity only if needed.
+
+#### General Configuration Tips
 
 1. **Use absolute paths** for reliability across different environments
 2. **Environment variables** can be set in client config or .env file
