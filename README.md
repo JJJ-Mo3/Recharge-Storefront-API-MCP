@@ -151,9 +151,46 @@ Admin API Token + Customer ID → Customer Session Token → API Operations
 1. **Log into Recharge**: Access your merchant portal
 2. **Navigate to API Tokens**: Go to Apps & integrations > API tokens
 3. **Create Admin Token**: Create a new **Admin API** token (not Storefront API token)
-4. **Copy Token**: Save the token (starts with your store prefix)
+4. **Set Permissions**: Ensure the token has ALL required permissions (see below)
+5. **Copy Token**: Save the token (starts with your store prefix)
 
 **Critical**: You must use **Admin API** tokens. Storefront API tokens will not work for session creation. Admin tokens typically start with your store prefix (e.g., `mystore_`) or `sk_`.
+
+### Required Token Permissions
+
+Your Admin API token must have **both read AND write permissions** for full functionality:
+
+#### Required Permissions:
+- ✅ **read_customers** - View customer information
+- ✅ **write_customers** - Update customer profiles, create sessions
+- ✅ **read_subscriptions** - View subscription details
+- ✅ **write_subscriptions** - Skip, update, cancel, activate subscriptions
+- ✅ **read_orders** - View order history
+- ✅ **write_orders** - Modify orders and charges
+- ✅ **read_products** - Browse product catalog
+- ✅ **read_addresses** - View customer addresses
+- ✅ **write_addresses** - Create, update, delete addresses
+- ✅ **read_payment_methods** - View payment information
+- ✅ **write_payment_methods** - Update billing information
+- ✅ **read_discounts** - View applied discounts
+- ✅ **write_discounts** - Apply and remove discount codes
+
+#### Common Permission Issues:
+
+**Problem**: 403 errors on write operations (skip, update, cancel subscriptions)
+**Cause**: Token has read permissions but missing write permissions
+**Solution**: Update token permissions or create new token with full write access
+
+**Problem**: Read operations work but write operations fail
+**Cause**: Token created with "read-only" or limited permissions
+**Solution**: Ensure token has ALL permissions listed above
+
+#### How to Check Token Permissions:
+1. Go to Recharge admin → Apps & integrations → API tokens
+2. Find your Admin API token
+3. Check the "Permissions" or "Scopes" section
+4. Ensure ALL required permissions are enabled
+5. If missing permissions, either update existing token or create new one
 
 ### Authentication Methods
 
@@ -1067,6 +1104,27 @@ npm run mcp:test
 # Check token hasn't expired or been revoked
 ```
 
+**Problem**: `403 Forbidden` on write operations (skip, update, cancel)
+```bash
+# Solution: Check token permissions
+# Your Admin API token needs WRITE permissions, not just read
+# Go to Recharge admin → API tokens → Check permissions
+# Ensure token has: write_subscriptions, write_customers, write_orders
+# Create new token with full permissions if needed
+```
+
+**Problem**: Read operations work but write operations fail with 403
+```bash
+# This is a classic token permissions issue
+# Your token has read permissions but missing write permissions
+# Solution: Update token permissions to include ALL write scopes:
+# - write_customers
+# - write_subscriptions  
+# - write_orders
+# - write_addresses
+# - write_payment_methods
+# - write_discounts
+```
 #### Configuration Issues
 
 **Problem**: `No store URL available`
