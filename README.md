@@ -395,9 +395,9 @@ Edit your Claude Desktop configuration file:
 }
 ```
 
-3. **If you experience MCP protocol issues in Cursor**, create a simple wrapper script:
+3. **If you experience MCP protocol issues in Cursor**, you have two options:
 
-Create `run-server.js` in your project root:
+**Option A: Create a wrapper script** in your project root (`run-server.js`):
 ```javascript
 #!/usr/bin/env node
 import('./src/server.js').catch(console.error);
@@ -410,13 +410,17 @@ Then use this configuration:
     "recharge-storefront-api": {
       "command": "node",
       "args": ["run-server.js"],
-      "cwd": "path/to/recharge-storefront-api-mcp"
+      "cwd": "path/to/recharge-storefront-api-mcp",
+      "env": {
+        "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
+        "RECHARGE_ADMIN_TOKEN": "your_admin_token_here"
+      }
     }
   }
 }
 ```
 
-4. **Alternative: Use .env file** and simpler config:
+**Option B: Use .env file** with simpler config (if wrapper script doesn't work):
 
 ```json
 {
@@ -430,6 +434,7 @@ Then use this configuration:
 }
 ```
 
+*Note: This relies on your `.env` file in the project directory containing the required environment variables.*
 #### GPT-5 and OpenAI Clients
 
 For GPT-5 and other OpenAI-based MCP clients:
