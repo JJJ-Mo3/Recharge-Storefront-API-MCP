@@ -151,14 +151,14 @@ Admin API Token + Customer ID → Customer Session Token → API Operations
 1. **Log into Recharge**: Access your merchant portal
 2. **Navigate to API Tokens**: Go to Apps & integrations > API tokens
 3. **Create Admin Token**: Create a new **Admin API** token (not Storefront API token)
-4. **Set Permissions**: Ensure the token has ALL required permissions (see below)
+4. **Set Permissions**: **IMPORTANT**: Recharge tokens have NO permissions by default. You must explicitly check ALL required permission boxes (see below)
 5. **Copy Token**: Save the token (starts with your store prefix)
 
 **Critical**: You must use **Admin API** tokens. Storefront API tokens will not work for session creation. Admin tokens typically start with your store prefix (e.g., `mystore_`) or `sk_`.
 
 ### Required Token Permissions
 
-Your Admin API token must have **both read AND write permissions** for full functionality:
+Your Admin API token must have **both read AND write permissions** for full functionality. **Recharge does NOT grant these by default** - you must explicitly select each permission when creating the token:
 
 #### Required Permissions:
 - ✅ **read_customers** - View customer information
@@ -174,6 +174,8 @@ Your Admin API token must have **both read AND write permissions** for full func
 - ✅ **write_payment_methods** - Update billing information
 - ✅ **read_discounts** - View applied discounts
 - ✅ **write_discounts** - Apply and remove discount codes
+
+**⚠️ Common Mistake**: Many users only select read permissions initially, thinking write permissions aren't needed. However, operations like "skip subscription" or "update customer" require write permissions even though they might seem like simple operations.
 
 #### Common Permission Issues:
 
