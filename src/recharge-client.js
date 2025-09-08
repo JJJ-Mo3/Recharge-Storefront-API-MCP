@@ -127,8 +127,9 @@ export class RechargeClient {
   async getOrCreateSessionToken(customerId = null, customerEmail = null) {
     // If explicit session token provided, validate and use it
     if (this.sessionToken) {
-      if (typeof this.sessionToken !== 'string' || this.sessionToken.trim() === '') {
-        throw new Error('Invalid session token format');
+      const validationResult = this.validateSessionToken(this.sessionToken);
+      if (!validationResult.isValid) {
+        throw new Error(`Invalid session token: ${validationResult.reason}`);
       }
       if (process.env.DEBUG === 'true') {
         console.error('[DEBUG] Using explicit session token');
@@ -139,17 +140,6 @@ export class RechargeClient {
     // If customer identification provided, get/create customer session
     if (customerId || customerEmail) {
       let finalCustomerId = customerId;
-      
-      // Validate customer ID format if provided
-      if (finalCustomerId) {
-        if (typeof finalCustomerId !== 'string' && typeof finalCustomerId !== 'number') {
-          throw new Error('Customer ID must be a string or number');
-        }
-        finalCustomerId = finalCustomerId.toString();
-        if (finalCustomerId.trim() === '') {
-          throw new Error('Customer ID cannot be empty');
-        }
-      }
       
       // Validate customer ID format if provided
       if (finalCustomerId) {
@@ -198,46 +188,27 @@ export class RechargeClient {
         throw new Error('Unable to determine customer ID from provided information');
       }
       
-      // Validate we have a customer ID at this point
-      if (!finalCustomerId) {
-        throw new Error('Unable to determine customer ID from provided information');
-      }
-      
       // Check for cached session
       const cachedToken = this.sessionCache.getSessionToken(finalCustomerId);
       if (cachedToken) {
-        if (process.env.DEBUG === 'true') {
-          console.error(`[DEBUG] Using cached session for customer ${finalCustomerId}`);
+        // Validate cached token before using
+        const validationResult = this.validateSessionToken(cachedToken);
+        if (validationResult.isValid) {
+          if (process.env.DEBUG === 'true') {
+            console.error(`[DEBUG] Using cached session for customer ${finalCustomerId}`);
+          }
+          return cachedToken;
+        } else {
+          if (process.env.DEBUG === 'true') {
+            console.error(`[DEBUG] Cached session invalid (${validationResult.reason}), creating new session for customer ${finalCustomerId}`);
+          }
+          // Clear invalid cached session
+          this.sessionCache.clearSession(finalCustomerId);
         }
-        return cachedToken;
       }
       
-      // Create new session
-      if (process.env.DEBUG === 'true') {
-        console.error(`[DEBUG] Creating new session for customer ${finalCustomerId}`);
-      }
-      try {
-        const session = await this.createCustomerSessionById(finalCustomerId);
-        const newToken = session.apiToken;
-        
-        if (!newToken || typeof newToken !== 'string' || newToken.trim() === '') {
-          throw new Error('Session creation returned invalid token');
-        }
-        
-        if (!newToken || typeof newToken !== 'string' || newToken.trim() === '') {
-          throw new Error('Session creation returned invalid token');
-        }
-        
-        // Cache the new session
-        this.sessionCache.setSessionToken(finalCustomerId, newToken, customerEmail);
-        
-        return newToken;
-      } catch (error) {
-        if (process.env.DEBUG === 'true') {
-          console.error(`[DEBUG] Session creation failed for customer ${finalCustomerId}:`, error.message);
-        }
-        throw error;
-      }
+      // Create new session with validation
+      return await this.createAndValidateSession(finalCustomerId, customerEmail);
     }
 
     // Security check: prevent using default session when customer sessions exist
@@ -253,6 +224,109 @@ export class RechargeClient {
       'No session token available. Please provide customer_id, customer_email, or session_token parameter, ' +
       'or set RECHARGE_SESSION_TOKEN environment variable.'
     );
+  }
+
+  /**
+   * Create and validate a new session token
+   */
+  async createAndValidateSession(customerId, customerEmail = null) {
+    const MAX_SESSION_ATTEMPTS = 3;
+    
+    for (let attempt = 1; attempt <= MAX_SESSION_ATTEMPTS; attempt++) {
+      try {
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Creating new session for customer ${customerId} (attempt ${attempt}/${MAX_SESSION_ATTEMPTS})`);
+        }
+        
+        const session = await this.createCustomerSessionById(customerId);
+        const newToken = session.apiToken;
+        
+        // Validate the new token
+        const validationResult = this.validateSessionToken(newToken);
+        if (!validationResult.isValid) {
+          throw new Error(`Session creation returned invalid token: ${validationResult.reason}`);
+        }
+        
+        // Verify token is different from any previously cached token
+        const previousToken = this.sessionCache.getSessionToken(customerId);
+        if (previousToken === newToken) {
+          if (process.env.DEBUG === 'true') {
+            console.error(`[DEBUG] New session token identical to previous token, attempt ${attempt}`);
+          }
+          if (attempt < MAX_SESSION_ATTEMPTS) {
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          } else {
+            throw new Error('Session creation returned same token as expired session');
+          }
+        }
+        
+        // Cache the new session
+        this.sessionCache.setSessionToken(customerId, newToken, customerEmail);
+        
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Successfully created and cached new session for customer ${customerId}`);
+        }
+        
+        return newToken;
+      } catch (error) {
+        if (process.env.DEBUG === 'true') {
+          console.error(`[DEBUG] Session creation attempt ${attempt} failed for customer ${customerId}:`, error.message);
+        }
+        
+        if (attempt === MAX_SESSION_ATTEMPTS) {
+          throw new Error(`Session creation failed after ${MAX_SESSION_ATTEMPTS} attempts: ${error.message}`);
+        }
+        
+        // Wait before retry with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  /**
+   * Validate session token format and basic properties
+   */
+  validateSessionToken(token) {
+    if (!token) {
+      return { isValid: false, reason: 'Token is null or undefined' };
+    }
+    
+    if (typeof token !== 'string') {
+      return { isValid: false, reason: 'Token must be a string' };
+    }
+    
+    const trimmedToken = token.trim();
+    if (trimmedToken === '') {
+      return { isValid: false, reason: 'Token cannot be empty' };
+    }
+    
+    if (trimmedToken.length < 10) {
+      return { isValid: false, reason: 'Token appears too short (less than 10 characters)' };
+    }
+    
+    // Check for obviously invalid tokens
+    const invalidTokens = [
+      'undefined',
+      'null',
+      'your_session_token_here',
+      'st_example',
+      'test_token'
+    ];
+    
+    if (invalidTokens.includes(trimmedToken.toLowerCase())) {
+      return { isValid: false, reason: 'Token appears to be a placeholder or test value' };
+    }
+    
+    // Basic format validation - session tokens typically have specific patterns
+    // This is a loose validation to catch obvious issues without being too restrictive
+    if (!/^[a-zA-Z0-9_\-\.]+$/.test(trimmedToken)) {
+      return { isValid: false, reason: 'Token contains invalid characters' };
+    }
+    
+    return { isValid: true, reason: null };
   }
 
   /**
