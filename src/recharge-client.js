@@ -62,6 +62,7 @@ export class RechargeClient {
     this.sessionToken = sessionToken;
     this.adminToken = adminToken;
     this.sessionCache = new SessionCache();
+    this.currentDomain = domain; // Store current domain for cache management
 
     // Get API URL from environment variable or use production default
     let apiUrl = 'https://api.rechargeapps.com'; // Default to production
@@ -114,6 +115,46 @@ export class RechargeClient {
     // Explicitly bind methods to resolve parsing issues
     this.makeRequest = this.makeRequest.bind(this);
     this.makeRequestWithRetry = this.makeRequestWithRetry.bind(this);
+    this.purgeSessionCache = this.purgeSessionCache.bind(this);
+  }
+
+  /**
+   * Purge session cache - useful when switching environments
+   * @param {Object} options - Purge options
+   * @param {boolean} options.all - Clear all sessions (default: true)
+   * @param {number} options.olderThanMinutes - Clear sessions older than X minutes
+   * @param {string} options.reason - Reason for purging (for logging)
+   */
+  purgeSessionCache(options = {}) {
+    const { all = true, olderThanMinutes, reason = 'manual purge' } = options;
+    
+    if (process.env.DEBUG === 'true') {
+      console.error(`[DEBUG] Purging session cache: ${reason}`);
+    }
+    
+    if (all) {
+      const stats = this.sessionCache.getStats();
+      this.sessionCache.clearAll();
+      
+      if (process.env.DEBUG === 'true') {
+        console.error(`[DEBUG] Purged ${stats.totalSessions} sessions and ${stats.emailMappings} email mappings`);
+      }
+      
+      return {
+        cleared: stats.totalSessions,
+        emailMappings: stats.emailMappings,
+        reason
+      };
+    } else if (olderThanMinutes) {
+      const cleared = this.sessionCache.clearExpiredSessions(olderThanMinutes);
+      
+      return {
+        cleared,
+        reason: `expired sessions older than ${olderThanMinutes} minutes`
+      };
+    }
+    
+    return { cleared: 0, reason: 'no action taken' };
   }
 
   /**
@@ -160,6 +201,9 @@ export class RechargeClient {
    * Get or create session token for customer operations
    */
   async getOrCreateSessionToken(customerId = null, customerEmail = null) {
+    // Auto-purge very old sessions (older than 4 hours) to prevent stale token issues
+    this.sessionCache.clearExpiredSessions(240);
+    
     // If explicit session token provided, validate and use it
     if (this.sessionToken) {
       const validationResult = this.validateSessionToken(this.sessionToken);

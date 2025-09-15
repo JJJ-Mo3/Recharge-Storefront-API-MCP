@@ -152,6 +152,50 @@ export class SessionCache {
   }
 
   /**
+   * Clear sessions for a specific environment/domain
+   * Useful when switching between dev/test/production environments
+   * @param {string} domain - Domain to clear sessions for (e.g., 'test-shop.myshopify.com')
+   */
+  clearSessionsForDomain(domain) {
+    if (!domain || typeof domain !== 'string') {
+      return;
+    }
+    
+    // Since we don't store domain info with sessions, we clear all sessions
+    // This is safer when switching environments to prevent cross-environment token usage
+    this.clearAll();
+    
+    if (process.env.DEBUG === 'true') {
+      console.error(`[DEBUG] Cleared all sessions due to domain change: ${domain}`);
+    }
+  }
+
+  /**
+   * Clear expired sessions based on age
+   * @param {number} maxAgeMinutes - Maximum age in minutes (default: 60 minutes)
+   * @returns {number} Number of sessions cleared
+   */
+  clearExpiredSessions(maxAgeMinutes = 60) {
+    const now = new Date();
+    const cutoffTime = new Date(now.getTime() - (maxAgeMinutes * 60 * 1000));
+    
+    let clearedCount = 0;
+    
+    for (const [customerId, sessionData] of this.sessions) {
+      if (sessionData.createdAt < cutoffTime) {
+        this.clearSession(customerId);
+        clearedCount++;
+      }
+    }
+    
+    if (process.env.DEBUG === 'true' && clearedCount > 0) {
+      console.error(`[DEBUG] Cleared ${clearedCount} expired sessions (older than ${maxAgeMinutes} minutes)`);
+    }
+    
+    return clearedCount;
+  }
+
+  /**
    * Check if customer has cached session
    * @param {string} customerId - Customer ID
    * @returns {boolean} True if session exists in cache

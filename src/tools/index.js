@@ -8,6 +8,7 @@ import { discountTools } from './discount-tools.js';
 import { chargeTools } from './charge-tools.js';
 import { onetimeTools } from './onetimes-tools.js';
 import { bundleTools } from './bundle-tools.js';
+import { utilityTools } from './utility-tools.js';
 
 export const tools = [
   ...customerTools,
@@ -20,4 +21,5 @@ export const tools = [
   ...chargeTools,
   ...onetimeTools,
   ...bundleTools,
+  ...utilityTools,
 ];
