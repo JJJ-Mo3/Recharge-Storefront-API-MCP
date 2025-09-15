@@ -361,7 +361,6 @@ export class RechargeClient {
       throw new Error('API endpoint must start with /');
     }
     
-    let sessionToken;
     try {
       sessionToken = sessionToken || await this.getOrCreateSessionToken(customerId, customerEmail);
     } catch (error) {
