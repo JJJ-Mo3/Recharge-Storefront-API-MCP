@@ -318,9 +318,16 @@ export class RechargeClient {
   }
 
   /**
-   * Validate session token format and basic properties
+   * Validate session token format and basic properties (wrapper for backward compatibility)
    */
   validateSessionToken(token) {
+    return this.validateSessionTokenFormat(token);
+  }
+
+  /**
+   * Validate session token format and basic properties (renamed from validateSessionToken)
+   */
+  validateSessionTokenFormat(token) {
     if (!token) {
       return { isValid: false, reason: 'Token is null or undefined' };
     }
