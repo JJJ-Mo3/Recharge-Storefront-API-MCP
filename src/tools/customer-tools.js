@@ -158,7 +158,7 @@ export const customerTools = [
     description: 'Retrieve current customer information',
     inputSchema: customerSchema,
     execute: async (client, args) => {
-      const customer = await client.getCustomer(args.customer_id, args.customer_email);
+      const customer = await client.getCustomer(args.customer_id, args.customer_email, args.session_token);
       return {
         content: [
           {
@@ -220,7 +220,7 @@ export const customerTools = [
         };
       }
       
-      const updatedCustomer = await client.updateCustomer(updateData, args.customer_id, args.customer_email);
+      const updatedCustomer = await client.updateCustomer(updateData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

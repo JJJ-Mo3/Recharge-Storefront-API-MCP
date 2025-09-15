@@ -49,7 +49,7 @@ export const paymentTools = [
     description: 'Get payment methods for a specific customer',
     inputSchema: baseSchema,
     execute: async (client, args) => {
-      const paymentMethods = await client.getPaymentMethods({}, args.customer_id, args.customer_email);
+      const paymentMethods = await client.getPaymentMethods({}, args.customer_id, args.customer_email, args.session_token);
       return {
         content: [
           {
@@ -66,7 +66,7 @@ export const paymentTools = [
     inputSchema: paymentMethodSchema,
     execute: async (client, args) => {
       const { payment_method_id } = args;
-      const paymentMethod = await client.getPaymentMethod(payment_method_id, args.customer_id, args.customer_email);
+      const paymentMethod = await client.getPaymentMethod(payment_method_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -91,7 +91,7 @@ export const paymentTools = [
       delete paymentData.session_token;
       delete paymentData.admin_token;
       delete paymentData.store_url;
-      const updatedPaymentMethod = await client.updatePaymentMethod(payment_method_id, paymentData, args.customer_id, args.customer_email);
+      const updatedPaymentMethod = await client.updatePaymentMethod(payment_method_id, paymentData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

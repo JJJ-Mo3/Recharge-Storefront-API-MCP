@@ -191,7 +191,7 @@ export const subscriptionTools = [
       delete params.admin_token;
       delete params.store_url;
       
-      const subscriptions = await client.getSubscriptions(params, args.customer_id, args.customer_email);
+      const subscriptions = await client.getSubscriptions(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -279,7 +279,7 @@ export const subscriptionTools = [
         }
         
         // Get products to validate variant exists
-        const products = await client.getProducts({ limit: 250 }, args.customer_id, args.customer_email);
+        const products = await client.getProducts({ limit: 250 }, args.customer_id, args.customer_email, args.session_token);
         
         if (!products || !products.products || !Array.isArray(products.products)) {
           throw new Error('Unable to validate variant - product catalog unavailable');
@@ -362,7 +362,7 @@ export const subscriptionTools = [
       }
       
       try {
-        const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email);
+        const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email, args.session_token);
         
         return {
           content: [
@@ -433,7 +433,7 @@ export const subscriptionTools = [
     inputSchema: subscriptionSchema,
     execute: async (client, args) => {
       const { subscription_id } = args;
-      const subscription = await client.getSubscription(subscription_id, args.customer_id, args.customer_email);
+      const subscription = await client.getSubscription(subscription_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -606,7 +606,7 @@ export const subscriptionTools = [
       delete updateData.store_url;
       
       try {
-        const updatedSubscription = await client.updateSubscription(subscription_id, updateData, args.customer_id, args.customer_email);
+        const updatedSubscription = await client.updateSubscription(subscription_id, updateData, args.customer_id, args.customer_email, args.session_token);
         
         return {
           content: [
@@ -665,7 +665,7 @@ export const subscriptionTools = [
     inputSchema: skipSubscriptionSchema,
     execute: async (client, args) => {
       const { subscription_id, date } = args;
-      const result = await client.skipSubscription(subscription_id, date, args.customer_id, args.customer_email);
+      const result = await client.skipSubscription(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -683,7 +683,7 @@ export const subscriptionTools = [
     inputSchema: unskipSubscriptionSchema,
     execute: async (client, args) => {
       const { subscription_id, date } = args;
-      const result = await client.unskipSubscription(subscription_id, date, args.customer_id, args.customer_email);
+      const result = await client.unskipSubscription(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -708,7 +708,7 @@ export const subscriptionTools = [
       delete swapData.session_token;
       delete swapData.admin_token;
       delete swapData.store_url;
-      const swappedSubscription = await client.swapSubscription(subscription_id, swapData, args.customer_id, args.customer_email);
+      const swappedSubscription = await client.swapSubscription(subscription_id, swapData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -733,7 +733,7 @@ export const subscriptionTools = [
       delete cancelData.session_token;
       delete cancelData.admin_token;
       delete cancelData.store_url;
-      const cancelledSubscription = await client.cancelSubscription(subscription_id, cancelData, args.customer_id, args.customer_email);
+      const cancelledSubscription = await client.cancelSubscription(subscription_id, cancelData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -751,7 +751,7 @@ export const subscriptionTools = [
     inputSchema: activateSubscriptionSchema,
     execute: async (client, args) => {
       const { subscription_id } = args;
-      const activatedSubscription = await client.activateSubscription(subscription_id, args.customer_id, args.customer_email);
+      const activatedSubscription = await client.activateSubscription(subscription_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -769,7 +769,7 @@ export const subscriptionTools = [
     inputSchema: setNextChargeDateSchema,
     execute: async (client, args) => {
       const { subscription_id, date } = args;
-      const updatedSubscription = await client.setNextChargeDate(subscription_id, date, args.customer_id, args.customer_email);
+      const updatedSubscription = await client.setNextChargeDate(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

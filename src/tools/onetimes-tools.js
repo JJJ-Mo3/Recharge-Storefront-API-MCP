@@ -61,7 +61,7 @@ export const onetimeTools = [
     description: 'Get one-time products for a specific customer',
     inputSchema: baseSchema,
     execute: async (client, args) => {
-      const onetimes = await client.getOnetimes({}, args.customer_id, args.customer_email);
+      const onetimes = await client.getOnetimes({}, args.customer_id, args.customer_email, args.session_token);
       return {
         content: [
           {
@@ -78,7 +78,7 @@ export const onetimeTools = [
     inputSchema: onetimeSchema,
     execute: async (client, args) => {
       const { onetime_id } = args;
-      const onetime = await client.getOnetime(onetime_id, args.customer_id, args.customer_email);
+      const onetime = await client.getOnetime(onetime_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -101,7 +101,7 @@ export const onetimeTools = [
       delete onetimeData.session_token;
       delete onetimeData.admin_token;
       delete onetimeData.store_url;
-      const onetime = await client.createOnetime(onetimeData, args.customer_id, args.customer_email);
+      const onetime = await client.createOnetime(onetimeData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -126,7 +126,7 @@ export const onetimeTools = [
       delete onetimeData.session_token;
       delete onetimeData.admin_token;
       delete onetimeData.store_url;
-      const updatedOnetime = await client.updateOnetime(onetime_id, onetimeData, args.customer_id, args.customer_email);
+      const updatedOnetime = await client.updateOnetime(onetime_id, onetimeData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -144,7 +144,7 @@ export const onetimeTools = [
     inputSchema: onetimeSchema,
     execute: async (client, args) => {
       const { onetime_id } = args;
-      const result = await client.deleteOnetime(onetime_id, args.customer_id, args.customer_email);
+      const result = await client.deleteOnetime(onetime_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

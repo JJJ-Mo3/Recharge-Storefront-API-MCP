@@ -48,7 +48,7 @@ export const discountTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const discounts = await client.getDiscounts(params, args.customer_id, args.customer_email);
+      const discounts = await client.getDiscounts(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -66,7 +66,7 @@ export const discountTools = [
     inputSchema: discountSchema,
     execute: async (client, args) => {
       const { discount_id } = args;
-      const discount = await client.getDiscount(discount_id, args.customer_id, args.customer_email);
+      const discount = await client.getDiscount(discount_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -84,7 +84,7 @@ export const discountTools = [
     inputSchema: applyDiscountSchema,
     execute: async (client, args) => {
       const { discount_code } = args;
-      const discount = await client.applyDiscount(discount_code, args.customer_id, args.customer_email);
+      const discount = await client.applyDiscount(discount_code, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -102,7 +102,7 @@ export const discountTools = [
     inputSchema: discountSchema,
     execute: async (client, args) => {
       const { discount_id } = args;
-      const result = await client.removeDiscount(discount_id, args.customer_id, args.customer_email);
+      const result = await client.removeDiscount(discount_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

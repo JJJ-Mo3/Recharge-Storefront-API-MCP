@@ -40,7 +40,7 @@ export const orderTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const orders = await client.getOrders(params, args.customer_id, args.customer_email);
+      const orders = await client.getOrders(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -58,7 +58,7 @@ export const orderTools = [
     inputSchema: orderSchema,
     execute: async (client, args) => {
       const { order_id } = args;
-      const order = await client.getOrder(order_id, args.customer_id, args.customer_email);
+      const order = await client.getOrder(order_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

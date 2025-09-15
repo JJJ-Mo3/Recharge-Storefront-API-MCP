@@ -40,7 +40,7 @@ export const chargeTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const charges = await client.getCharges(params, args.customer_id, args.customer_email);
+      const charges = await client.getCharges(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -58,7 +58,7 @@ export const chargeTools = [
     inputSchema: chargeSchema,
     execute: async (client, args) => {
       const { charge_id } = args;
-      const charge = await client.getCharge(charge_id, args.customer_id, args.customer_email);
+      const charge = await client.getCharge(charge_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

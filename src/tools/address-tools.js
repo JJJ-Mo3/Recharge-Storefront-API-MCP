@@ -255,7 +255,7 @@ export const addressTools = [
     description: 'Get addresses for a specific customer',
     inputSchema: baseSchema,
     execute: async (client, args) => {
-      const addresses = await client.getAddresses({}, args.customer_id, args.customer_email);
+      const addresses = await client.getAddresses({}, args.customer_id, args.customer_email, args.session_token);
       return {
         content: [
           {
@@ -272,7 +272,7 @@ export const addressTools = [
     inputSchema: addressSchema,
     execute: async (client, args) => {
       const { address_id } = args;
-      const address = await client.getAddress(address_id, args.customer_id, args.customer_email);
+      const address = await client.getAddress(address_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -350,7 +350,7 @@ export const addressTools = [
         };
       }
       
-      const address = await client.createAddress(addressData, args.customer_id, args.customer_email);
+      const address = await client.createAddress(addressData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -430,7 +430,7 @@ export const addressTools = [
         };
       }
       
-      const updatedAddress = await client.updateAddress(address_id, addressData, args.customer_id, args.customer_email);
+      const updatedAddress = await client.updateAddress(address_id, addressData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -448,7 +448,7 @@ export const addressTools = [
     inputSchema: addressSchema,
     execute: async (client, args) => {
       const { address_id } = args;
-      const result = await client.deleteAddress(address_id, args.customer_id, args.customer_email);
+      const result = await client.deleteAddress(address_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

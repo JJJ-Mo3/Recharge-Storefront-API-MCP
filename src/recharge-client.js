@@ -332,14 +332,14 @@ export class RechargeClient {
   /**
    * Make authenticated request to Storefront API
    */
-  async makeRequest(method, endpoint, data = null, params = null, customerId = null, customerEmail = null) {
-    return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, 0);
+  async makeRequest(method, endpoint, data = null, params = null, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, sessionToken, 0);
   }
 
   /**
    * Make authenticated request with retry logic for session expiry
    */
-  async makeRequestWithRetry(method, endpoint, data = null, params = null, customerId = null, customerEmail = null, retryCount = 0) {
+  async makeRequestWithRetry(method, endpoint, data = null, params = null, customerId = null, customerEmail = null, sessionToken = null, retryCount = 0) {
     const MAX_RETRIES = 2;
     
     // Validate method
@@ -363,7 +363,7 @@ export class RechargeClient {
     
     let sessionToken;
     try {
-      sessionToken = await this.getOrCreateSessionToken(customerId, customerEmail);
+      sessionToken = sessionToken || await this.getOrCreateSessionToken(customerId, customerEmail);
     } catch (error) {
       if (process.env.DEBUG === 'true') {
         console.error(`[DEBUG] Failed to get session token:`, error.message);
@@ -415,7 +415,7 @@ export class RechargeClient {
         
         // Retry with incremented count
         try {
-          return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, retryCount + 1);
+          return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, null, retryCount + 1);
         } catch (retryError) {
           if (process.env.DEBUG === 'true') {
             console.error(`[DEBUG] Session retry ${retryCount + 1} failed:`, retryError.message);
@@ -576,15 +576,15 @@ export class RechargeClient {
   }
 
   // Customer Management Methods
-  async getCustomer(customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/customer', null, null, customerId, customerEmail);
+  async getCustomer(customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/customer', null, null, customerId, customerEmail, sessionToken);
   }
 
-  async updateCustomer(updateData, customerId = null, customerEmail = null) {
+  async updateCustomer(updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', '/customer', updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', '/customer', updateData, null, customerId, customerEmail, sessionToken);
   }
 
   async getCustomerByEmail(email) {
@@ -652,291 +652,291 @@ export class RechargeClient {
   }
 
   // Subscription Management Methods
-  async getSubscriptions(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/subscriptions', null, params, customerId, customerEmail);
+  async getSubscriptions(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/subscriptions', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getSubscription(subscriptionId, customerId = null, customerEmail = null) {
+  async getSubscription(subscriptionId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
-    return await this.makeRequest('GET', `/subscriptions/${subscriptionId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/subscriptions/${subscriptionId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async createSubscription(subscriptionData, customerId = null, customerEmail = null) {
+  async createSubscription(subscriptionData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionData || typeof subscriptionData !== 'object') {
       throw new Error('Subscription data is required');
     }
-    return await this.makeRequest('POST', '/subscriptions', subscriptionData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/subscriptions', subscriptionData, null, customerId, customerEmail, sessionToken);
   }
 
-  async updateSubscription(subscriptionId, updateData, customerId = null, customerEmail = null) {
+  async updateSubscription(subscriptionId, updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, updateData, null, customerId, customerEmail, sessionToken);
   }
 
-  async skipSubscription(subscriptionId, date, customerId = null, customerEmail = null) {
+  async skipSubscription(subscriptionId, date, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
     if (!date) {
       throw new Error('Date is required for skipping subscription');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/skip`, { date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/skip`, { date }, null, customerId, customerEmail, sessionToken);
   }
 
-  async unskipSubscription(subscriptionId, date, customerId = null, customerEmail = null) {
+  async unskipSubscription(subscriptionId, date, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
     if (!date) {
       throw new Error('Date is required for unskipping subscription');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/unskip`, { date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/unskip`, { date }, null, customerId, customerEmail, sessionToken);
   }
 
-  async swapSubscription(subscriptionId, swapData, customerId = null, customerEmail = null) {
+  async swapSubscription(subscriptionId, swapData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
     if (!swapData || typeof swapData !== 'object') {
       throw new Error('Swap data is required');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, swapData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, swapData, null, customerId, customerEmail, sessionToken);
   }
 
-  async cancelSubscription(subscriptionId, cancelData = {}, customerId = null, customerEmail = null) {
+  async cancelSubscription(subscriptionId, cancelData = {}, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, cancelData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, cancelData, null, customerId, customerEmail, sessionToken);
   }
 
-  async activateSubscription(subscriptionId, customerId = null, customerEmail = null) {
+  async activateSubscription(subscriptionId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/activate`, null, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/activate`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async setNextChargeDate(subscriptionId, date, customerId = null, customerEmail = null) {
+  async setNextChargeDate(subscriptionId, date, customerId = null, customerEmail = null, sessionToken = null) {
     if (!subscriptionId) {
       throw new Error('Subscription ID is required');
     }
     if (!date) {
       throw new Error('Date is required');
     }
-    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail, sessionToken);
   }
 
   // Address Management Methods
-  async getAddresses(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/addresses', null, params, customerId, customerEmail);
+  async getAddresses(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/addresses', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getAddress(addressId, customerId = null, customerEmail = null) {
+  async getAddress(addressId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!addressId) {
       throw new Error('Address ID is required');
     }
-    return await this.makeRequest('GET', `/addresses/${addressId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/addresses/${addressId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async createAddress(addressData, customerId = null, customerEmail = null) {
+  async createAddress(addressData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!addressData || typeof addressData !== 'object') {
       throw new Error('Address data is required');
     }
-    return await this.makeRequest('POST', '/addresses', addressData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/addresses', addressData, null, customerId, customerEmail, sessionToken);
   }
 
-  async updateAddress(addressId, updateData, customerId = null, customerEmail = null) {
+  async updateAddress(addressId, updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!addressId) {
       throw new Error('Address ID is required');
     }
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', `/addresses/${addressId}`, updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', `/addresses/${addressId}`, updateData, null, customerId, customerEmail, sessionToken);
   }
 
-  async deleteAddress(addressId, customerId = null, customerEmail = null) {
+  async deleteAddress(addressId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!addressId) {
       throw new Error('Address ID is required');
     }
-    return await this.makeRequest('DELETE', `/addresses/${addressId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('DELETE', `/addresses/${addressId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // Payment Method Management
-  async getPaymentMethods(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/payment_methods', null, params, customerId, customerEmail);
+  async getPaymentMethods(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/payment_methods', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getPaymentMethod(paymentMethodId, customerId = null, customerEmail = null) {
+  async getPaymentMethod(paymentMethodId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!paymentMethodId) {
       throw new Error('Payment method ID is required');
     }
-    return await this.makeRequest('GET', `/payment_methods/${paymentMethodId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/payment_methods/${paymentMethodId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async updatePaymentMethod(paymentMethodId, updateData, customerId = null, customerEmail = null) {
+  async updatePaymentMethod(paymentMethodId, updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!paymentMethodId) {
       throw new Error('Payment method ID is required');
     }
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', `/payment_methods/${paymentMethodId}`, updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', `/payment_methods/${paymentMethodId}`, updateData, null, customerId, customerEmail, sessionToken);
   }
 
   // Product Catalog Methods
-  async getProducts(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/products', null, params, customerId, customerEmail);
+  async getProducts(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/products', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getProduct(productId, customerId = null, customerEmail = null) {
+  async getProduct(productId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!productId) {
       throw new Error('Product ID is required');
     }
-    return await this.makeRequest('GET', `/products/${productId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/products/${productId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // Order Management Methods
-  async getOrders(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/orders', null, params, customerId, customerEmail);
+  async getOrders(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/orders', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getOrder(orderId, customerId = null, customerEmail = null) {
+  async getOrder(orderId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!orderId) {
       throw new Error('Order ID is required');
     }
-    return await this.makeRequest('GET', `/orders/${orderId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/orders/${orderId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // Charge Management Methods
-  async getCharges(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/charges', null, params, customerId, customerEmail);
+  async getCharges(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/charges', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getCharge(chargeId, customerId = null, customerEmail = null) {
+  async getCharge(chargeId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!chargeId) {
       throw new Error('Charge ID is required');
     }
-    return await this.makeRequest('GET', `/charges/${chargeId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/charges/${chargeId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // One-time Product Methods
-  async getOnetimes(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/onetimes', null, params, customerId, customerEmail);
+  async getOnetimes(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/onetimes', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getOnetime(onetimeId, customerId = null, customerEmail = null) {
+  async getOnetime(onetimeId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!onetimeId) {
       throw new Error('One-time ID is required');
     }
-    return await this.makeRequest('GET', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async createOnetime(onetimeData, customerId = null, customerEmail = null) {
+  async createOnetime(onetimeData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!onetimeData || typeof onetimeData !== 'object') {
       throw new Error('One-time data is required');
     }
-    return await this.makeRequest('POST', '/onetimes', onetimeData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/onetimes', onetimeData, null, customerId, customerEmail, sessionToken);
   }
 
-  async updateOnetime(onetimeId, updateData, customerId = null, customerEmail = null) {
+  async updateOnetime(onetimeId, updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!onetimeId) {
       throw new Error('One-time ID is required');
     }
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', `/onetimes/${onetimeId}`, updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', `/onetimes/${onetimeId}`, updateData, null, customerId, customerEmail, sessionToken);
   }
 
-  async deleteOnetime(onetimeId, customerId = null, customerEmail = null) {
+  async deleteOnetime(onetimeId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!onetimeId) {
       throw new Error('One-time ID is required');
     }
-    return await this.makeRequest('DELETE', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('DELETE', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // Bundle Management Methods
-  async getBundles(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/bundles', null, params, customerId, customerEmail);
+  async getBundles(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/bundles', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getBundle(bundleId, customerId = null, customerEmail = null) {
+  async getBundle(bundleId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!bundleId) {
       throw new Error('Bundle ID is required');
     }
-    return await this.makeRequest('GET', `/bundles/${bundleId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/bundles/${bundleId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async getBundleSelections(bundleId, params = {}, customerId = null, customerEmail = null) {
+  async getBundleSelections(bundleId, params = {}, customerId = null, customerEmail = null, sessionToken = null) {
     if (!bundleId) {
       throw new Error('Bundle ID is required');
     }
-    return await this.makeRequest('GET', `/bundles/${bundleId}/bundle_selections`, null, params, customerId, customerEmail);
+    return await this.makeRequest('GET', `/bundles/${bundleId}/bundle_selections`, null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getBundleSelection(bundleSelectionId, customerId = null, customerEmail = null) {
+  async getBundleSelection(bundleSelectionId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!bundleSelectionId) {
       throw new Error('Bundle selection ID is required');
     }
-    return await this.makeRequest('GET', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async createBundleSelection(selectionData, customerId = null, customerEmail = null) {
+  async createBundleSelection(selectionData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!selectionData || typeof selectionData !== 'object') {
       throw new Error('Bundle selection data is required');
     }
-    return await this.makeRequest('POST', '/bundle_selections', selectionData, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/bundle_selections', selectionData, null, customerId, customerEmail, sessionToken);
   }
 
-  async updateBundleSelection(bundleSelectionId, updateData, customerId = null, customerEmail = null) {
+  async updateBundleSelection(bundleSelectionId, updateData, customerId = null, customerEmail = null, sessionToken = null) {
     if (!bundleSelectionId) {
       throw new Error('Bundle selection ID is required');
     }
     if (!updateData || typeof updateData !== 'object') {
       throw new Error('Update data is required');
     }
-    return await this.makeRequest('PUT', `/bundle_selections/${bundleSelectionId}`, updateData, null, customerId, customerEmail);
+    return await this.makeRequest('PUT', `/bundle_selections/${bundleSelectionId}`, updateData, null, customerId, customerEmail, sessionToken);
   }
 
-  async deleteBundleSelection(bundleSelectionId, customerId = null, customerEmail = null) {
+  async deleteBundleSelection(bundleSelectionId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!bundleSelectionId) {
       throw new Error('Bundle selection ID is required');
     }
-    return await this.makeRequest('DELETE', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('DELETE', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
   // Discount Management Methods
-  async getDiscounts(params = {}, customerId = null, customerEmail = null) {
-    return await this.makeRequest('GET', '/discounts', null, params, customerId, customerEmail);
+  async getDiscounts(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/discounts', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getDiscount(discountId, customerId = null, customerEmail = null) {
+  async getDiscount(discountId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!discountId) {
       throw new Error('Discount ID is required');
     }
-    return await this.makeRequest('GET', `/discounts/${discountId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('GET', `/discounts/${discountId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async applyDiscount(discountCode, customerId = null, customerEmail = null) {
+  async applyDiscount(discountCode, customerId = null, customerEmail = null, sessionToken = null) {
     if (!discountCode || typeof discountCode !== 'string' || discountCode.trim() === '') {
       throw new Error('Discount code is required');
     }
-    return await this.makeRequest('POST', '/discounts', { discount_code: discountCode.trim() }, null, customerId, customerEmail);
+    return await this.makeRequest('POST', '/discounts', { discount_code: discountCode.trim() }, null, customerId, customerEmail, sessionToken);
   }
 
-  async removeDiscount(discountId, customerId = null, customerEmail = null) {
+  async removeDiscount(discountId, customerId = null, customerEmail = null, sessionToken = null) {
     if (!discountId) {
       throw new Error('Discount ID is required');
     }
-    return await this.makeRequest('DELETE', `/discounts/${discountId}`, null, null, customerId, customerEmail);
+    return await this.makeRequest('DELETE', `/discounts/${discountId}`, null, null, customerId, customerEmail, sessionToken);
   }
 }

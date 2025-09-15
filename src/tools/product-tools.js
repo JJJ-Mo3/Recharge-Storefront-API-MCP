@@ -40,7 +40,7 @@ export const productTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const products = await client.getProducts(params, args.customer_id, args.customer_email);
+      const products = await client.getProducts(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -58,7 +58,7 @@ export const productTools = [
     inputSchema: productSchema,
     execute: async (client, args) => {
       const { product_id } = args;
-      const product = await client.getProduct(product_id, args.customer_id, args.customer_email);
+      const product = await client.getProduct(product_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [

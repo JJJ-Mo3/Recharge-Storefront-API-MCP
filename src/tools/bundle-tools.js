@@ -89,7 +89,7 @@ export const bundleTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const bundles = await client.getBundles(params, args.customer_id, args.customer_email);
+      const bundles = await client.getBundles(params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -107,7 +107,7 @@ export const bundleTools = [
     inputSchema: bundleSchema,
     execute: async (client, args) => {
       const { bundle_id } = args;
-      const bundle = await client.getBundle(bundle_id, args.customer_id, args.customer_email);
+      const bundle = await client.getBundle(bundle_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -132,7 +132,7 @@ export const bundleTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      const selections = await client.getBundleSelections(bundle_id, params, args.customer_id, args.customer_email);
+      const selections = await client.getBundleSelections(bundle_id, params, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -150,7 +150,7 @@ export const bundleTools = [
     inputSchema: bundleSelectionSchema,
     execute: async (client, args) => {
       const { bundle_selection_id } = args;
-      const selection = await client.getBundleSelection(bundle_selection_id, args.customer_id, args.customer_email);
+      const selection = await client.getBundleSelection(bundle_selection_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -173,7 +173,7 @@ export const bundleTools = [
       delete selectionData.session_token;
       delete selectionData.admin_token;
       delete selectionData.store_url;
-      const selection = await client.createBundleSelection(selectionData, args.customer_id, args.customer_email);
+      const selection = await client.createBundleSelection(selectionData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -198,7 +198,7 @@ export const bundleTools = [
       delete selectionData.session_token;
       delete selectionData.admin_token;
       delete selectionData.store_url;
-      const updatedSelection = await client.updateBundleSelection(bundle_selection_id, selectionData, args.customer_id, args.customer_email);
+      const updatedSelection = await client.updateBundleSelection(bundle_selection_id, selectionData, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
@@ -216,7 +216,7 @@ export const bundleTools = [
     inputSchema: bundleSelectionSchema,
     execute: async (client, args) => {
       const { bundle_selection_id } = args;
-      const result = await client.deleteBundleSelection(bundle_selection_id, args.customer_id, args.customer_email);
+      const result = await client.deleteBundleSelection(bundle_selection_id, args.customer_id, args.customer_email, args.session_token);
       
       return {
         content: [
