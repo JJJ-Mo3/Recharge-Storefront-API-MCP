@@ -12,6 +12,37 @@ export class RechargeClient {
       throw new Error('Store URL is required');
     }
 
+    // Validate that session token is not accidentally set to admin token
+    if (sessionToken && adminToken && sessionToken === adminToken) {
+      throw new Error(
+        'Configuration Error: session_token and admin_token cannot be the same value.\n' +
+        'You have set RECHARGE_SESSION_TOKEN to the same value as RECHARGE_ADMIN_TOKEN.\n' +
+        'Admin tokens cannot be used as session tokens.\n\n' +
+        'Fix: Remove RECHARGE_SESSION_TOKEN from your .env file or set it to a valid customer session token.\n' +
+        'The system will automatically create customer session tokens using your admin token when needed.'
+      );
+    }
+
+    // Validate session token format if provided
+    if (sessionToken) {
+      const sessionValidation = this.validateSessionTokenFormat(sessionToken);
+      if (!sessionValidation.isValid) {
+        // Check if it looks like an admin token
+        if (this.looksLikeAdminToken(sessionToken)) {
+          throw new Error(
+            'Configuration Error: RECHARGE_SESSION_TOKEN appears to be an admin token.\n' +
+            'Admin tokens cannot be used as session tokens.\n\n' +
+            'Fix: Remove RECHARGE_SESSION_TOKEN from your .env file.\n' +
+            'The system will automatically create customer session tokens using your admin token when needed.\n\n' +
+            `Detected pattern: ${this.getTokenPattern(sessionToken)}`
+          );
+        } else {
+          console.warn(`[WARNING] Session token validation failed: ${sessionValidation.reason}`);
+          console.warn('[WARNING] This may cause authentication issues. Consider removing RECHARGE_SESSION_TOKEN to use automatic session creation.');
+        }
+      }
+    }
+
     // Validate and normalize store URL
     let domain = storeUrl;
     if (storeUrl.startsWith('http://') || storeUrl.startsWith('https://')) {
