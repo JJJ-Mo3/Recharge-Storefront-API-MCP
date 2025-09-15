@@ -110,10 +110,11 @@ export class RechargeClient {
         return request;
       });
     }
-  }
+
     // Explicitly bind methods to resolve parsing issues
     this.makeRequest = this.makeRequest.bind(this);
     this.makeRequestWithRetry = this.makeRequestWithRetry.bind(this);
+  }
 
   /**
    * Validate API URL to prevent security issues
@@ -239,7 +240,6 @@ export class RechargeClient {
           // Clear invalid cached session
           this.sessionCache.clearSession(finalCustomerId);
         }
-        }
       }
       
       // Create new session with validation
@@ -251,9 +251,7 @@ export class RechargeClient {
       throw new Error(
         'Security Error: Cannot use default session token when customer-specific sessions exist. ' +
         'Please specify \'customer_id\', \'customer_email\', or \'session_token\' to ensure correct customer data access.'
-    
-  }
-}  );
+      );
     }
 
     // No customer identification and no default session
