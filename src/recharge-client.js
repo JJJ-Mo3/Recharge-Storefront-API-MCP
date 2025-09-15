@@ -111,6 +111,9 @@ export class RechargeClient {
       });
     }
   }
+    // Explicitly bind methods to resolve parsing issues
+    this.makeRequest = this.makeRequest.bind(this);
+    this.makeRequestWithRetry = this.makeRequestWithRetry.bind(this);
 
   /**
    * Validate API URL to prevent security issues
