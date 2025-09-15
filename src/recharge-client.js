@@ -236,6 +236,7 @@ export class RechargeClient {
           // Clear invalid cached session
           this.sessionCache.clearSession(finalCustomerId);
         }
+        }
       }
       
       // Create new session with validation
@@ -247,7 +248,9 @@ export class RechargeClient {
       throw new Error(
         'Security Error: Cannot use default session token when customer-specific sessions exist. ' +
         'Please specify \'customer_id\', \'customer_email\', or \'session_token\' to ensure correct customer data access.'
-      );
+    
+  }
+}  );
     }
 
     // No customer identification and no default session
@@ -276,15 +279,6 @@ export class RechargeClient {
         const validationResult = this.validateSessionToken(newToken);
         if (!validationResult.isValid) {
           throw new Error(`Session creation returned invalid token: ${validationResult.reason}`);
-        }
-        
-        // Additional validation: ensure new token is not an admin token
-        if (this.looksLikeAdminToken(newToken)) {
-          throw new Error(
-            `Session creation returned what appears to be an admin token instead of a session token. ` +
-            `This indicates a configuration issue with your Recharge setup. ` +
-            `Pattern: ${this.getTokenPattern(newToken)}`
-          );
         }
         
         // Verify token is different from any previously cached token
