@@ -64,6 +64,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 | **One-time Products** | 5 tools | Add products to upcoming deliveries |
 | **Bundle Management** | 7 tools | Product bundle and selection management |
 | **Discount System** | 4 tools | Apply and manage discount codes |
+| **Utilities** | 2 tools | Session cache management and diagnostics |
 
 ### Advanced Features
 
@@ -76,6 +77,14 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 - **Security Protection**: Prevents accidental customer data exposure
 - **Unicode Support**: Full international character support for names and addresses
 - **Business Rule Validation**: Prevents invalid subscription configurations
+
+### Session Cache Management
+
+- **Automatic Session Caching**: Customer session tokens cached for performance
+- **Environment Switching Support**: Tools to purge cache when switching between dev/test/production
+- **Automatic Cleanup**: Old sessions (4+ hours) automatically purged to prevent stale tokens
+- **Cache Statistics**: Monitor cached sessions and performance
+- **Manual Purging**: Clear specific or all cached sessions on demand
 
 ## Installation
 
@@ -770,6 +779,13 @@ DEBUG=true npm start
 | `apply_discount` | Apply discount code | `discount_code` |
 | `remove_discount` | Remove discount | `discount_id` |
 
+### Utility Tools (2 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `purge_session_cache` | Clear cached session tokens | `all`, `older_than_minutes`, `reason` |
+| `get_session_cache_stats` | View cache statistics | - |
+
 ## Usage Examples
 
 ### 1. Basic Customer Operations
@@ -871,6 +887,35 @@ DEBUG=true npm start
 
 // Back to Customer A (reuses cached session)
 {"name": "get_addresses", "arguments": {"customer_email": "alice@example.com"}}
+```
+
+### 5. Session Cache Management
+
+```json
+// Clear all cached sessions (recommended when switching environments)
+{
+  "name": "purge_session_cache",
+  "arguments": {
+    "all": true,
+    "reason": "switching from dev to production"
+  }
+}
+
+// Clear only sessions older than 2 hours
+{
+  "name": "purge_session_cache",
+  "arguments": {
+    "all": false,
+    "older_than_minutes": 120,
+    "reason": "cleanup old sessions"
+  }
+}
+
+// Check cache statistics
+{
+  "name": "get_session_cache_stats",
+  "arguments": {}
+}
 ```
 
 ### 5. Error Handling and Troubleshooting
@@ -1237,6 +1282,20 @@ DEBUG=true npm start
 
 #### Session Issues
 
+**Problem**: `Cross-environment token contamination`
+```bash
+# Solution: Purge session cache when switching environments
+# Use the purge_session_cache tool to clear cached tokens
+# This prevents dev tokens from being used in production
+```
+
+**Problem**: `Too many cached sessions affecting performance`
+```bash
+# Solution: Clean up old sessions periodically
+# Use purge_session_cache with older_than_minutes parameter
+# Or check get_session_cache_stats to monitor cache size
+```
+
 **Problem**: `Customer session token expired`
 ```bash
 # Solution: Customer session tokens are automatically recreated
@@ -1319,6 +1378,7 @@ Debug information includes:
 - **Session token caching**: Secure in-memory session management
 - **Automatic session renewal**: Expired sessions recreated transparently
 - **Parameter cleanup**: Sensitive parameters removed from API requests
+- **Session cache isolation**: Environment-specific session management
 - **Unicode normalization**: Prevents encoding-based attacks
 - **API URL validation**: Custom URLs must use HTTPS, no fallback to production
 - **Fail-fast configuration**: Invalid settings caught at startup
@@ -1334,6 +1394,7 @@ For security issues, please follow responsible disclosure practices and contact 
 #### Session Management
 - **Intelligent Caching**: Customer sessions cached to avoid repeated API calls
 - **Automatic Renewal**: Expired sessions renewed transparently
+- **Environment Isolation**: Session cache can be purged when switching environments
 - **Multi-Customer Support**: Efficient handling of multiple customer sessions
 
 #### Request Optimization
@@ -1356,6 +1417,7 @@ For security issues, please follow responsible disclosure practices and contact 
 1. **Reuse Customer Sessions**: Use the same customer email/ID for related operations
 2. **Enable Caching**: Let the server cache customer sessions automatically
 3. **Batch Operations**: Group related operations for the same customer
+4. **Purge When Switching Environments**: Use `purge_session_cache` when switching between dev/test/production
 4. **Monitor Debug Output**: Use `DEBUG=true` to identify performance bottlenecks
 
 ## Contributing
@@ -1400,7 +1462,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Full Tests**: Run `npm run test:full` for comprehensive testing
 
 ### Project Statistics
-- **37 Tools**: Complete Recharge Storefront API coverage
+- **39 Tools**: Complete Recharge Storefront API coverage
 - **10 Categories**: Comprehensive subscription management
 - **Production Ready**: Error handling, logging, and monitoring
 - **Secure**: Built-in customer data protection with session token isolation
