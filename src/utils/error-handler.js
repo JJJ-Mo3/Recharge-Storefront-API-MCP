@@ -389,6 +389,14 @@ export function validateAuthParams(params) {
     if (admin_token.length < 10) {
       throw new Error('Admin token appears to be too short');
     }
+    
+    // Check if admin token and session token are the same
+    if (session_token && admin_token === session_token) {
+      throw new Error(
+        'Configuration Error: admin_token and session_token cannot be the same value. ' +
+        'Admin tokens cannot be used as session tokens.'
+      );
+    }
   }
   
   // Validate API URL if provided

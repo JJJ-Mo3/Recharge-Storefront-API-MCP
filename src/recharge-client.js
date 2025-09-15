@@ -278,6 +278,15 @@ export class RechargeClient {
           throw new Error(`Session creation returned invalid token: ${validationResult.reason}`);
         }
         
+        // Additional validation: ensure new token is not an admin token
+        if (this.looksLikeAdminToken(newToken)) {
+          throw new Error(
+            `Session creation returned what appears to be an admin token instead of a session token. ` +
+            `This indicates a configuration issue with your Recharge setup. ` +
+            `Pattern: ${this.getTokenPattern(newToken)}`
+          );
+        }
+        
         // Verify token is different from any previously cached token
         const previousToken = this.sessionCache.getSessionToken(customerId);
         if (previousToken === newToken) {
@@ -318,16 +327,9 @@ export class RechargeClient {
   }
 
   /**
-   * Validate session token format and basic properties (wrapper for backward compatibility)
+   * Validate session token format and basic properties
    */
   validateSessionToken(token) {
-    return this.validateSessionTokenFormat(token);
-  }
-
-  /**
-   * Validate session token format and basic properties (renamed from validateSessionToken)
-   */
-  validateSessionTokenFormat(token) {
     if (!token) {
       return { isValid: false, reason: 'Token is null or undefined' };
     }
