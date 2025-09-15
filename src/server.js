@@ -299,35 +299,6 @@ async function main() {
       process.exit(1);
     }
     
-    // Validate Node.js version
-    const nodeVersion = process.version.slice(1).split('.').map(Number);
-    const requiredVersion = [18, 0, 0];
-    const isValidVersion = nodeVersion[0] > requiredVersion[0] || 
-      (nodeVersion[0] === requiredVersion[0] && nodeVersion[1] > requiredVersion[1]) ||
-      (nodeVersion[0] === requiredVersion[0] && nodeVersion[1] === requiredVersion[1] && nodeVersion[2] >= requiredVersion[2]);
-    
-    if (!isValidVersion) {
-      console.error(`[FATAL] Node.js version ${process.version} is not supported. Please install Node.js 18.0.0 or higher.`);
-      process.exit(1);
-    }
-    
-    // Validate required dependencies
-    try {
-      const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
-      const { z } = await import('zod');
-      const axios = await import('axios');
-      const dotenv = await import('dotenv');
-      
-      // Validate that imports are functional
-      if (!Server || !z || !axios || !dotenv) {
-        throw new Error('Failed to import required modules');
-      }
-    } catch (error) {
-      console.error('[FATAL] Missing required dependencies. Please run: npm install');
-      console.error('[DEBUG] Missing dependency:', error.message);
-      process.exit(1);
-    }
-    
     // Validate environment
     const hasStoreDomain = process.env.RECHARGE_STOREFRONT_DOMAIN && 
       process.env.RECHARGE_STOREFRONT_DOMAIN.trim() !== '' && 
