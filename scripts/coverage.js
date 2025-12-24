@@ -28,6 +28,7 @@
       else if (parts.includes('onetime')) category = 'onetimes';
       else if (parts.includes('bundle')) category = 'bundles';
       else if (parts.includes('discount')) category = 'discounts';
+      else if (parts.includes('session') || parts.includes('cache') || parts.includes('purge')) category = 'utility';
       else category = 'general';
       
       categories[category] = (categories[category] || 0) + 1;

@@ -19,12 +19,6 @@ A comprehensive Model Context Protocol (MCP) server that provides complete acces
 - [Security](#security)
 - [Performance](#performance)
 - [Contributing](#contributing)
-- [Development](#development)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [Security](#security)
-- [Performance](#performance)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
@@ -41,7 +35,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 
 ### Key Benefits
 
-- **Complete API Coverage**: All 37 Recharge Storefront API endpoints
+- **Complete API Coverage**: All 46 Recharge Storefront API endpoints
 - **Intelligent Authentication**: Automatic session management with multi-customer support
 - **Production Ready**: Error handling, logging, and monitoring
 - **Developer Friendly**: Comprehensive documentation, examples, and debugging tools
@@ -1462,8 +1456,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Full Tests**: Run `npm run test:full` for comprehensive testing
 
 ### Project Statistics
-- **39 Tools**: Complete Recharge Storefront API coverage
-- **10 Categories**: Comprehensive subscription management
+- **46 Tools**: Complete Recharge Storefront API coverage
+- **11 Categories**: Comprehensive subscription management
 - **Production Ready**: Error handling, logging, and monitoring
 - **Secure**: Built-in customer data protection with session token isolation
 - **International**: Full Unicode support for global customers

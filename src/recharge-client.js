@@ -367,6 +367,71 @@ export class RechargeClient {
   }
 
   /**
+   * Validate session token format for initial configuration check
+   */
+  validateSessionTokenFormat(token) {
+    if (!token || typeof token !== 'string') {
+      return { isValid: false, reason: 'Token must be a non-empty string' };
+    }
+
+    const trimmedToken = token.trim();
+    if (trimmedToken === '') {
+      return { isValid: false, reason: 'Token cannot be empty' };
+    }
+
+    if (trimmedToken.length < 10) {
+      return { isValid: false, reason: 'Token appears too short' };
+    }
+
+    const placeholders = ['your_session_token_here', 'st_example', 'test_token', 'undefined', 'null'];
+    if (placeholders.includes(trimmedToken.toLowerCase())) {
+      return { isValid: false, reason: 'Token appears to be a placeholder value' };
+    }
+
+    return { isValid: true, reason: null };
+  }
+
+  /**
+   * Check if a token looks like an admin token rather than a session token
+   */
+  looksLikeAdminToken(token) {
+    if (!token || typeof token !== 'string') {
+      return false;
+    }
+
+    const trimmedToken = token.trim().toLowerCase();
+    if (trimmedToken.startsWith('sk_')) {
+      return true;
+    }
+    if (trimmedToken.includes('admin')) {
+      return true;
+    }
+    if (trimmedToken.length > 100 && !trimmedToken.startsWith('st_')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get a masked pattern representation of a token for error messages
+   */
+  getTokenPattern(token) {
+    if (!token || typeof token !== 'string') {
+      return 'invalid';
+    }
+
+    const trimmed = token.trim();
+    if (trimmed.length < 4) {
+      return 'too_short';
+    }
+
+    const prefix = trimmed.substring(0, 3);
+    const suffix = trimmed.substring(trimmed.length - 3);
+    return `${prefix}...${suffix} (${trimmed.length} chars)`;
+  }
+
+  /**
    * Validate session token format and basic properties
    */
   validateSessionToken(token) {

@@ -101,8 +101,6 @@ run_test "Environment template check" "test -f .env.example" "required"
 run_test "Main entry point exists" "test -f index.js" "required"
 run_test "Main entry point syntax" "node --check index.js" "required"
 
-# Test Docker configuration
-run_test "Dockerfile syntax check" "test -f Dockerfile" "optional"
 
 # Test script permissions
 run_test "Setup script permissions" "test -x scripts/setup.sh" "optional"
@@ -169,11 +167,11 @@ run_test "All tools properly exported" "node --input-type=module -e \"
 
 # Count tool files
 TOOL_FILES=$(find src/tools -name "*-tools.js" | wc -l)
-if [ "$TOOL_FILES" -eq 10 ]; then
+if [ "$TOOL_FILES" -eq 11 ]; then
     print_status "Tool files count: $TOOL_FILES"
     TESTS_PASSED=$((TESTS_PASSED + 1))
 else
-    print_error "Incorrect tool files count: $TOOL_FILES (expected exactly 10)"
+    print_error "Incorrect tool files count: $TOOL_FILES (expected exactly 11)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
 fi
 
@@ -288,12 +286,11 @@ TOTAL_TESTS=$((TESTS_PASSED + TESTS_FAILED + TESTS_SKIPPED))
 echo "📊 Total tests run: $TOTAL_TESTS"
 
 if [ $TESTS_FAILED -eq 0 ]; then
-    print_status "All critical tests passed! 🎉"
+    print_status "All critical tests passed!"
     echo ""
     print_info "Project is ready for:"
-    echo "  ✅ Development (npm run dev)"
-    echo "  ✅ Production (npm start)"
-    echo "  ✅ Docker deployment (npm run docker:build)"
+    echo "  - Development (npm run dev)"
+    echo "  - Production (npm start)"
     exit 0
 else
     print_error "Some critical tests failed. Please fix the issues before proceeding."
