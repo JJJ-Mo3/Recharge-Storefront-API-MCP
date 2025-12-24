@@ -2,9 +2,10 @@
 
 ## Product Requirements Document & Technical Specification
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Date:** December 24, 2024
 **Status:** Draft
+**Infrastructure:** Netlify Functions + Supabase Database
 
 ---
 
@@ -17,7 +18,7 @@
 5. [API Specification](#5-api-specification)
 6. [Authentication & Security](#6-authentication--security)
 7. [Tool Definitions](#7-tool-definitions)
-8. [Edge Function Implementation](#8-edge-function-implementation)
+8. [Netlify Functions Implementation](#8-netlify-functions-implementation)
 9. [Session Management](#9-session-management)
 10. [Rate Limiting & Quotas](#10-rate-limiting--quotas)
 11. [Error Handling](#11-error-handling)
@@ -25,6 +26,7 @@
 13. [Deployment Guide](#13-deployment-guide)
 14. [Testing Strategy](#14-testing-strategy)
 15. [Migration from Local Server](#15-migration-from-local-server)
+16. [Appendices](#appendices)
 
 ---
 
@@ -34,25 +36,35 @@
 
 This document specifies the requirements and technical implementation details for converting the local Recharge Storefront API MCP Server into a publicly hosted, multi-tenant service. The public server will enable AI assistants to manage Recharge subscriptions through the Model Context Protocol (MCP) without requiring users to run local infrastructure.
 
-### 1.2 Goals
+### 1.2 Infrastructure Choice
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Serverless Functions** | Netlify Functions | MCP gateway, tool execution, management APIs |
+| **Database** | Supabase PostgreSQL | Credential storage, session cache, usage logs |
+| **Authentication** | Custom API Keys | Secure access to MCP endpoints |
+| **CDN/Edge** | Netlify Edge | Global distribution, low latency |
+
+### 1.3 Goals
 
 - **Accessibility**: Enable any MCP-compatible AI client to access Recharge APIs without local setup
 - **Multi-tenancy**: Support multiple Shopify stores and users simultaneously
 - **Security**: Secure credential storage and transmission with enterprise-grade protection
-- **Scalability**: Handle high request volumes with automatic scaling
+- **Scalability**: Handle high request volumes with automatic scaling via Netlify
 - **Reliability**: 99.9% uptime with proper error handling and recovery
 
-### 1.3 Key Differences from Local Server
+### 1.4 Key Differences from Local Server
 
 | Aspect | Local Server | Public Server |
 |--------|-------------|---------------|
 | Transport | stdio | HTTP/SSE |
-| Credentials | Environment variables | Encrypted database storage |
+| Credentials | Environment variables | Encrypted Supabase storage |
 | Multi-tenancy | Single store | Multiple stores/users |
 | Session Cache | In-memory (process) | Database-backed (Supabase) |
 | Authentication | None (local trust) | API keys with scopes |
 | Rate Limiting | None | Tiered limits per API key |
-| Deployment | User-managed | Supabase Edge Functions |
+| Deployment | User-managed | Netlify Functions |
+| Runtime | Node.js 18+ | Netlify Functions (Node.js) |
 
 ---
 
@@ -62,8 +74,8 @@ This document specifies the requirements and technical implementation details fo
 
 ```
 +------------------+     MCP Protocol      +----------------------+
-|   AI Assistant   | -------------------- |  Public MCP Server   |
-| (Claude, GPT-5)  |     (HTTP/SSE)       |  (Edge Functions)    |
+|   AI Assistant   | -------------------> |  Netlify Functions   |
+| (Claude, etc.)   |     (HTTPS)          |  (MCP Gateway)       |
 +------------------+                       +----------------------+
                                                     |
                                            +--------+--------+
@@ -74,23 +86,99 @@ This document specifies the requirements and technical implementation details fo
                                     +-------------+   +-------------+
 ```
 
-### 2.2 Supported Functionality
+### 2.2 Supported Functionality - Complete Tool List (46 Tools)
 
 The public server provides the same 46 tools as the local server across 11 categories:
 
-| Category | Tool Count | Description |
-|----------|------------|-------------|
-| Customer Management | 4 | Profile operations, lookup, session creation |
-| Subscription Lifecycle | 9 | CRUD, skip, swap, cancel, activate |
-| Address Management | 5 | CRUD for shipping/billing addresses |
-| Payment Methods | 3 | View and update payment information |
-| Product Catalog | 2 | Browse products and variants |
-| Order Management | 2 | View order history |
-| Charge Management | 2 | View billing and payments |
-| One-time Products | 5 | Add products to deliveries |
-| Bundle Management | 7 | Product bundle operations |
-| Discount System | 4 | Apply and manage discounts |
-| Utilities | 2 | Cache management, diagnostics |
+#### Customer Management (4 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_customer` | Retrieve current customer information | read |
+| `update_customer` | Update customer information (email, name, phone) | write |
+| `get_customer_by_email` | Find customer by email address to get customer ID | read |
+| `create_customer_session_by_id` | Create a customer session using customer ID | admin |
+
+#### Subscription Management (10 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_subscriptions` | Get subscriptions for a customer with filtering | read |
+| `get_subscription` | Get detailed information about a specific subscription | read |
+| `create_subscription` | Create a new subscription | write |
+| `update_subscription` | Update subscription details (frequency, quantity, date) | write |
+| `skip_subscription` | Skip a subscription delivery for a specific date | write |
+| `unskip_subscription` | Unskip a previously skipped subscription delivery | write |
+| `swap_subscription` | Swap the variant of a subscription | write |
+| `cancel_subscription` | Cancel a subscription | write |
+| `activate_subscription` | Activate a cancelled subscription | write |
+| `set_subscription_next_charge_date` | Set the next charge date for a subscription | write |
+
+#### Address Management (5 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_addresses` | Get addresses for a customer | read |
+| `get_address` | Get detailed information about a specific address | read |
+| `create_address` | Create a new address | write |
+| `update_address` | Update an existing address | write |
+| `delete_address` | Delete an address | write |
+
+#### Payment Methods (3 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_payment_methods` | Get payment methods for a customer | read |
+| `get_payment_method` | Get detailed information about a specific payment method | read |
+| `update_payment_method` | Update a payment method | write |
+
+#### Product Catalog (2 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_products` | Get products available for subscription | read |
+| `get_product` | Get detailed information about a specific product | read |
+
+#### Order Management (2 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_orders` | Get orders for a customer | read |
+| `get_order` | Get detailed information about a specific order | read |
+
+#### Charge Management (2 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_charges` | Get charges for a customer | read |
+| `get_charge` | Get detailed information about a specific charge | read |
+
+#### One-time Products (5 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_onetimes` | Get one-time products for a customer | read |
+| `get_onetime` | Get detailed information about a specific one-time product | read |
+| `create_onetime` | Create a one-time product to add to next delivery | write |
+| `update_onetime` | Update a one-time product | write |
+| `delete_onetime` | Delete a one-time product | write |
+
+#### Bundle Management (7 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_bundles` | Get bundles for a customer | read |
+| `get_bundle` | Get detailed information about a specific bundle | read |
+| `get_bundle_selections` | Get bundle selections for a specific bundle | read |
+| `get_bundle_selection` | Get detailed information about a specific bundle selection | read |
+| `create_bundle_selection` | Create a bundle selection | write |
+| `update_bundle_selection` | Update a bundle selection | write |
+| `delete_bundle_selection` | Delete a bundle selection | write |
+
+#### Discount Management (4 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `get_discounts` | Get discounts for a customer | read |
+| `get_discount` | Get detailed information about a specific discount | read |
+| `apply_discount` | Apply a discount code | write |
+| `remove_discount` | Remove a discount | write |
+
+#### Utility Tools (2 tools)
+| Tool Name | Description | Scope |
+|-----------|-------------|-------|
+| `purge_session_cache` | Clear cached customer session tokens | admin |
+| `get_session_cache_stats` | Get statistics about cached session tokens | read |
 
 ### 2.3 User Personas
 
@@ -122,14 +210,19 @@ The public server provides the same 46 tools as the local server across 11 categ
 |  +----------------+  +----------------+  +------------------+     |
 +------------------------------------------------------------------+
                               |
-                              | MCP Protocol (HTTP/SSE)
+                              | MCP Protocol (HTTPS)
                               v
 +------------------------------------------------------------------+
-|                    Supabase Edge Functions                        |
-|  +--------------------+  +--------------------+                   |
-|  |   MCP Gateway      |  |  Tool Executor     |                   |
-|  |   (mcp-gateway)    |  |  (tool-executor)   |                   |
-|  +--------------------+  +--------------------+                   |
+|                      Netlify Platform                             |
+|  +------------------------------------------------------------+  |
+|  |                    Netlify Functions                        |  |
+|  |  +------------------+  +------------------+                 |  |
+|  |  |  mcp-gateway     |  |  management-api  |                 |  |
+|  |  |  (main handler)  |  |  (stores, keys)  |                 |  |
+|  |  +------------------+  +------------------+                 |  |
+|  +------------------------------------------------------------+  |
+|  |                    Netlify Edge (CDN)                       |  |
+|  +------------------------------------------------------------+  |
 +------------------------------------------------------------------+
                               |
               +---------------+---------------+
@@ -137,40 +230,100 @@ The public server provides the same 46 tools as the local server across 11 categ
               v               v               v
 +------------------+  +------------------+  +------------------+
 |    Supabase      |  |  Session Cache   |  |    Recharge      |
-|    Database      |  |  (Supabase)      |  |      API         |
+|    PostgreSQL    |  |  (Supabase)      |  |      API         |
+|                  |  |                  |  |                  |
+|  - stores        |  |  - session_tokens|  |  - Storefront    |
+|  - api_keys      |  |                  |  |  - Admin         |
+|  - usage_logs    |  |                  |  |                  |
+|  - rate_limits   |  |                  |  |                  |
 +------------------+  +------------------+  +------------------+
 ```
 
 ### 3.2 Component Descriptions
 
-#### MCP Gateway (`mcp-gateway`)
-- Entry point for all MCP requests
-- Handles MCP protocol negotiation
-- Routes requests to appropriate tool handlers
-- Manages SSE connections for streaming responses
+#### Netlify Functions
 
-#### Tool Executor (`tool-executor`)
-- Executes individual tool calls
-- Manages Recharge API client lifecycle
-- Handles session token management
-- Returns formatted MCP responses
+| Function | Path | Purpose |
+|----------|------|---------|
+| `mcp-gateway` | `/.netlify/functions/mcp-gateway` | Main MCP protocol handler |
+| `stores` | `/.netlify/functions/stores` | Store management CRUD |
+| `api-keys` | `/.netlify/functions/api-keys` | API key management |
+| `health` | `/.netlify/functions/health` | Health check endpoint |
 
-#### Database Layer (Supabase)
-- Stores encrypted Recharge credentials
-- Manages API keys and permissions
-- Caches session tokens
-- Logs usage and audit trails
+#### Supabase Database
+
+| Table | Purpose |
+|-------|---------|
+| `stores` | Shopify store configuration with encrypted Recharge tokens |
+| `api_keys` | MCP API key management with scopes and rate limits |
+| `session_tokens` | Cached Recharge session tokens per customer |
+| `usage_logs` | API usage tracking and analytics |
+| `rate_limits` | Per-key rate limit tracking |
 
 ### 3.3 Request Flow
 
 ```
-1. MCP Client sends HTTP request with API key
-2. Edge Function validates API key
-3. Retrieve store credentials from database
-4. Check/create Recharge session token
-5. Execute tool against Recharge API
-6. Format and return MCP response
-7. Log usage metrics
+1. MCP Client sends HTTPS POST to Netlify Function with API key
+2. Netlify Function validates API key against Supabase
+3. Check rate limits in Supabase
+4. Retrieve store credentials from Supabase (decrypt admin token)
+5. Check/create Recharge session token in cache
+6. Execute tool against Recharge Storefront API
+7. Format and return MCP response
+8. Log usage to Supabase
+```
+
+### 3.4 Project Structure
+
+```
+recharge-mcp-public/
+├── netlify/
+│   └── functions/
+│       ├── mcp-gateway.ts          # Main MCP protocol handler
+│       ├── stores.ts               # Store management API
+│       ├── api-keys.ts             # API key management
+│       └── health.ts               # Health check endpoint
+├── src/
+│   ├── lib/
+│   │   ├── supabase.ts             # Supabase client
+│   │   ├── encryption.ts           # Token encryption/decryption
+│   │   ├── rate-limiter.ts         # Rate limiting logic
+│   │   └── auth.ts                 # API key validation
+│   ├── recharge/
+│   │   ├── client.ts               # Recharge API client
+│   │   └── session-cache.ts        # Session token cache
+│   ├── tools/
+│   │   ├── index.ts                # Tool registry
+│   │   ├── customer-tools.ts       # Customer management
+│   │   ├── subscription-tools.ts   # Subscription management
+│   │   ├── address-tools.ts        # Address management
+│   │   ├── payment-tools.ts        # Payment method management
+│   │   ├── product-tools.ts        # Product catalog
+│   │   ├── order-tools.ts          # Order management
+│   │   ├── charge-tools.ts         # Charge management
+│   │   ├── onetimes-tools.ts       # One-time products
+│   │   ├── bundle-tools.ts         # Bundle management
+│   │   ├── discount-tools.ts       # Discount management
+│   │   └── utility-tools.ts        # Utility tools
+│   ├── utils/
+│   │   ├── error-handler.ts        # Error handling utilities
+│   │   └── validators.ts           # Input validation
+│   └── types/
+│       ├── mcp.ts                  # MCP protocol types
+│       ├── recharge.ts             # Recharge API types
+│       └── database.ts             # Database types
+├── supabase/
+│   └── migrations/
+│       ├── 001_create_stores.sql
+│       ├── 002_create_api_keys.sql
+│       ├── 003_create_session_tokens.sql
+│       ├── 004_create_usage_logs.sql
+│       ├── 005_create_rate_limits.sql
+│       └── 006_create_functions.sql
+├── netlify.toml                    # Netlify configuration
+├── package.json
+├── tsconfig.json
+└── .env.example
 ```
 
 ---
@@ -181,9 +334,9 @@ The public server provides the same 46 tools as the local server across 11 categ
 
 The database uses Supabase PostgreSQL with Row Level Security (RLS) enabled on all tables.
 
-### 4.2 Table Definitions
+### 4.2 Migration Files
 
-#### `stores` - Shopify Store Configuration
+#### Migration 001: Create Stores Table
 
 ```sql
 /*
@@ -221,8 +374,9 @@ CREATE TABLE IF NOT EXISTS stores (
   CONSTRAINT valid_shopify_domain CHECK (shopify_domain ~ '^[a-z0-9-]+\.myshopify\.com$')
 );
 
-CREATE INDEX idx_stores_user_id ON stores(user_id);
-CREATE INDEX idx_stores_shopify_domain ON stores(shopify_domain);
+CREATE INDEX IF NOT EXISTS idx_stores_user_id ON stores(user_id);
+CREATE INDEX IF NOT EXISTS idx_stores_shopify_domain ON stores(shopify_domain);
+CREATE INDEX IF NOT EXISTS idx_stores_is_active ON stores(is_active) WHERE is_active = true;
 
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
 
@@ -246,9 +400,30 @@ CREATE POLICY "Users can delete own stores"
   ON stores FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+-- Service role can access all stores (for Netlify Functions)
+CREATE POLICY "Service role can access all stores"
+  ON stores FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_stores_updated_at
+  BEFORE UPDATE ON stores
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 ```
 
-#### `api_keys` - MCP API Key Management
+#### Migration 002: Create API Keys Table
 
 ```sql
 /*
@@ -292,9 +467,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
   CONSTRAINT valid_scopes CHECK (scopes <@ ARRAY['read', 'write', 'admin']::text[])
 );
 
-CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
-CREATE INDEX idx_api_keys_store_id ON api_keys(store_id);
-CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_store_id ON api_keys(store_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active) WHERE is_active = true;
 
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
@@ -318,9 +494,16 @@ CREATE POLICY "Users can delete own api_keys"
   ON api_keys FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
+
+-- Service role can access all api_keys (for Netlify Functions)
+CREATE POLICY "Service role can access all api_keys"
+  ON api_keys FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 ```
 
-#### `session_tokens` - Recharge Session Cache
+#### Migration 003: Create Session Tokens Table
 
 ```sql
 /*
@@ -339,7 +522,7 @@ CREATE POLICY "Users can delete own api_keys"
 
   2. Security
     - Enable RLS
-    - Service role only access (edge functions)
+    - Service role only access (Netlify Functions)
 */
 
 CREATE TABLE IF NOT EXISTS session_tokens (
@@ -355,13 +538,13 @@ CREATE TABLE IF NOT EXISTS session_tokens (
   CONSTRAINT unique_store_customer UNIQUE (store_id, customer_id)
 );
 
-CREATE INDEX idx_session_tokens_store_customer ON session_tokens(store_id, customer_id);
-CREATE INDEX idx_session_tokens_expires_at ON session_tokens(expires_at);
-CREATE INDEX idx_session_tokens_customer_email ON session_tokens(store_id, customer_email);
+CREATE INDEX IF NOT EXISTS idx_session_tokens_store_customer ON session_tokens(store_id, customer_id);
+CREATE INDEX IF NOT EXISTS idx_session_tokens_expires_at ON session_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_session_tokens_customer_email ON session_tokens(store_id, customer_email) WHERE customer_email IS NOT NULL;
 
 ALTER TABLE session_tokens ENABLE ROW LEVEL SECURITY;
 
--- Only service role can access session tokens (edge functions)
+-- Only service role can access session tokens (Netlify Functions)
 CREATE POLICY "Service role can manage session_tokens"
   ON session_tokens FOR ALL
   TO service_role
@@ -369,7 +552,7 @@ CREATE POLICY "Service role can manage session_tokens"
   WITH CHECK (true);
 ```
 
-#### `usage_logs` - API Usage Tracking
+#### Migration 004: Create Usage Logs Table
 
 ```sql
 /*
@@ -380,11 +563,13 @@ CREATE POLICY "Service role can manage session_tokens"
       - `id` (uuid, primary key)
       - `api_key_id` (uuid, references api_keys)
       - `store_id` (uuid, references stores)
+      - `user_id` (uuid, references auth.users)
       - `tool_name` (text)
       - `customer_id` (text, optional)
       - `status` (text, success/error)
       - `error_message` (text, optional)
       - `execution_time_ms` (integer)
+      - `request_metadata` (jsonb)
       - `created_at` (timestamptz)
 
   2. Security
@@ -408,10 +593,15 @@ CREATE TABLE IF NOT EXISTS usage_logs (
   CONSTRAINT valid_status CHECK (status IN ('success', 'error', 'rate_limited'))
 );
 
-CREATE INDEX idx_usage_logs_api_key_id ON usage_logs(api_key_id);
-CREATE INDEX idx_usage_logs_store_id ON usage_logs(store_id);
-CREATE INDEX idx_usage_logs_created_at ON usage_logs(created_at DESC);
-CREATE INDEX idx_usage_logs_tool_name ON usage_logs(tool_name);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_api_key_id ON usage_logs(api_key_id);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_store_id ON usage_logs(store_id);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_tool_name ON usage_logs(tool_name);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_status ON usage_logs(status);
+
+-- Partition by month for better performance (optional)
+-- CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at_month ON usage_logs(date_trunc('month', created_at));
 
 ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
 
@@ -420,14 +610,15 @@ CREATE POLICY "Users can view own usage_logs"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Service role can insert usage logs
-CREATE POLICY "Service role can insert usage_logs"
-  ON usage_logs FOR INSERT
+-- Service role can insert and select usage logs
+CREATE POLICY "Service role can manage usage_logs"
+  ON usage_logs FOR ALL
   TO service_role
+  USING (true)
   WITH CHECK (true);
 ```
 
-#### `rate_limits` - Rate Limit Tracking
+#### Migration 005: Create Rate Limits Table
 
 ```sql
 /*
@@ -453,7 +644,8 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   CONSTRAINT unique_api_key_window UNIQUE (api_key_id, window_start)
 );
 
-CREATE INDEX idx_rate_limits_api_key_window ON rate_limits(api_key_id, window_start);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_api_key_window ON rate_limits(api_key_id, window_start);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_window_start ON rate_limits(window_start);
 
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 
@@ -464,64 +656,37 @@ CREATE POLICY "Service role can manage rate_limits"
   WITH CHECK (true);
 ```
 
-### 4.3 Database Functions
-
-#### Encrypt/Decrypt Tokens
+#### Migration 006: Create Database Functions
 
 ```sql
 /*
-  # Create encryption functions
+  # Create database functions
 
-  Uses pgcrypto extension for AES-256 encryption
+  1. Functions
+    - encrypt_token / decrypt_token (using pgcrypto)
+    - check_rate_limit
+    - cleanup_expired_sessions
+    - increment_rate_limit
 */
 
 -- Enable pgcrypto extension
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Function to encrypt sensitive data
-CREATE OR REPLACE FUNCTION encrypt_token(token text, encryption_key text)
-RETURNS text AS $$
-BEGIN
-  RETURN encode(
-    pgp_sym_encrypt(token, encryption_key, 'cipher-algo=aes256'),
-    'base64'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to decrypt sensitive data
-CREATE OR REPLACE FUNCTION decrypt_token(encrypted_token text, encryption_key text)
-RETURNS text AS $$
-BEGIN
-  RETURN pgp_sym_decrypt(
-    decode(encrypted_token, 'base64'),
-    encryption_key
-  );
-EXCEPTION WHEN OTHERS THEN
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Rate Limit Check
-
-```sql
-/*
-  # Rate limit check function
-*/
-
-CREATE OR REPLACE FUNCTION check_rate_limit(
+-- Function to check and increment rate limit
+-- Returns true if within limit, false if exceeded
+CREATE OR REPLACE FUNCTION check_and_increment_rate_limit(
   p_api_key_id uuid,
   p_tier text,
   p_window_minutes integer DEFAULT 1
 )
-RETURNS boolean AS $$
+RETURNS jsonb AS $$
 DECLARE
   v_limit integer;
   v_current_count integer;
   v_window_start timestamptz;
+  v_within_limit boolean;
 BEGIN
-  -- Define limits per tier
+  -- Define limits per tier (requests per minute)
   v_limit := CASE p_tier
     WHEN 'free' THEN 10
     WHEN 'standard' THEN 60
@@ -540,41 +705,151 @@ BEGIN
   DO UPDATE SET request_count = rate_limits.request_count + 1
   RETURNING request_count INTO v_current_count;
 
-  -- Clean old records (older than 1 hour)
-  DELETE FROM rate_limits
-  WHERE window_start < now() - interval '1 hour';
+  v_within_limit := v_current_count <= v_limit;
 
-  RETURN v_current_count <= v_limit;
+  RETURN jsonb_build_object(
+    'within_limit', v_within_limit,
+    'current_count', v_current_count,
+    'limit', v_limit,
+    'window_start', v_window_start,
+    'reset_at', v_window_start + (p_window_minutes || ' minutes')::interval
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-```
 
-#### Session Token Cleanup
-
-```sql
-/*
-  # Session cleanup function
-*/
-
+-- Function to cleanup expired sessions
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
 RETURNS integer AS $$
 DECLARE
   v_deleted integer;
 BEGIN
-  DELETE FROM session_tokens
-  WHERE expires_at < now()
-  RETURNING COUNT(*) INTO v_deleted;
+  WITH deleted AS (
+    DELETE FROM session_tokens
+    WHERE expires_at < now()
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
 
   RETURN v_deleted;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Schedule cleanup (run every hour via cron)
-SELECT cron.schedule(
-  'cleanup-expired-sessions',
-  '0 * * * *',
-  'SELECT cleanup_expired_sessions()'
-);
+-- Function to cleanup old rate limit records
+CREATE OR REPLACE FUNCTION cleanup_old_rate_limits()
+RETURNS integer AS $$
+DECLARE
+  v_deleted integer;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM rate_limits
+    WHERE window_start < now() - interval '1 hour'
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get session token (with expiry check)
+CREATE OR REPLACE FUNCTION get_valid_session_token(
+  p_store_id uuid,
+  p_customer_id text
+)
+RETURNS TABLE(
+  session_token_encrypted text,
+  customer_email text,
+  is_valid boolean
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    st.session_token_encrypted,
+    st.customer_email,
+    (st.expires_at > now()) as is_valid
+  FROM session_tokens st
+  WHERE st.store_id = p_store_id
+    AND st.customer_id = p_customer_id;
+
+  -- Update last_used_at if found
+  UPDATE session_tokens
+  SET last_used_at = now()
+  WHERE store_id = p_store_id
+    AND customer_id = p_customer_id
+    AND expires_at > now();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to upsert session token
+CREATE OR REPLACE FUNCTION upsert_session_token(
+  p_store_id uuid,
+  p_customer_id text,
+  p_customer_email text,
+  p_session_token_encrypted text,
+  p_expires_hours integer DEFAULT 4
+)
+RETURNS void AS $$
+BEGIN
+  INSERT INTO session_tokens (
+    store_id,
+    customer_id,
+    customer_email,
+    session_token_encrypted,
+    expires_at
+  )
+  VALUES (
+    p_store_id,
+    p_customer_id,
+    p_customer_email,
+    p_session_token_encrypted,
+    now() + (p_expires_hours || ' hours')::interval
+  )
+  ON CONFLICT (store_id, customer_id)
+  DO UPDATE SET
+    customer_email = EXCLUDED.customer_email,
+    session_token_encrypted = EXCLUDED.session_token_encrypted,
+    last_used_at = now(),
+    expires_at = now() + (p_expires_hours || ' hours')::interval;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to validate API key and return details
+CREATE OR REPLACE FUNCTION validate_api_key(p_key_hash text)
+RETURNS jsonb AS $$
+DECLARE
+  v_result jsonb;
+BEGIN
+  SELECT jsonb_build_object(
+    'is_valid', true,
+    'key_id', ak.id,
+    'user_id', ak.user_id,
+    'store_id', ak.store_id,
+    'scopes', ak.scopes,
+    'rate_limit_tier', ak.rate_limit_tier,
+    'shopify_domain', s.shopify_domain,
+    'recharge_admin_token_encrypted', s.recharge_admin_token_encrypted,
+    'recharge_api_url', s.recharge_api_url
+  )
+  INTO v_result
+  FROM api_keys ak
+  JOIN stores s ON s.id = ak.store_id
+  WHERE ak.key_hash = p_key_hash
+    AND ak.is_active = true
+    AND s.is_active = true
+    AND (ak.expires_at IS NULL OR ak.expires_at > now());
+
+  IF v_result IS NULL THEN
+    RETURN jsonb_build_object('is_valid', false, 'error', 'Invalid or expired API key');
+  END IF;
+
+  -- Update last_used_at
+  UPDATE api_keys
+  SET last_used_at = now()
+  WHERE key_hash = p_key_hash;
+
+  RETURN v_result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ---
@@ -584,23 +859,31 @@ SELECT cron.schedule(
 ### 5.1 Base URL
 
 ```
-Production: https://<project-ref>.supabase.co/functions/v1/mcp-gateway
+Production: https://<your-site>.netlify.app/.netlify/functions/mcp-gateway
+Custom Domain: https://mcp.your-domain.com/.netlify/functions/mcp-gateway
 ```
 
 ### 5.2 MCP Protocol Endpoints
 
-#### List Tools
+#### Initialize (Handshake)
 
 ```http
-POST /functions/v1/mcp-gateway
+POST /.netlify/functions/mcp-gateway
 Content-Type: application/json
 Authorization: Bearer <api_key>
 
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "method": "tools/list",
-  "params": {}
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {},
+    "clientInfo": {
+      "name": "claude-desktop",
+      "version": "1.0.0"
+    }
+  }
 }
 ```
 
@@ -610,6 +893,39 @@ Authorization: Bearer <api_key>
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {}
+    },
+    "serverInfo": {
+      "name": "recharge-storefront-api-mcp",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
+#### List Tools
+
+```http
+POST /.netlify/functions/mcp-gateway
+Content-Type: application/json
+Authorization: Bearer <api_key>
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list",
+  "params": {}
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
     "tools": [
       {
         "name": "get_customer",
@@ -617,8 +933,32 @@ Authorization: Bearer <api_key>
         "inputSchema": {
           "type": "object",
           "properties": {
+            "customer_id": {
+              "type": "string",
+              "description": "Customer ID"
+            },
+            "customer_email": {
+              "type": "string",
+              "format": "email",
+              "description": "Customer email for lookup"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_subscriptions",
+        "description": "Get subscriptions for a specific customer",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
             "customer_id": { "type": "string" },
-            "customer_email": { "type": "string", "format": "email" }
+            "customer_email": { "type": "string", "format": "email" },
+            "status": {
+              "type": "string",
+              "enum": ["active", "cancelled", "expired"]
+            },
+            "limit": { "type": "number", "default": 50, "maximum": 250 },
+            "page": { "type": "number", "default": 1 }
           }
         }
       }
@@ -630,19 +970,20 @@ Authorization: Bearer <api_key>
 #### Call Tool
 
 ```http
-POST /functions/v1/mcp-gateway
+POST /.netlify/functions/mcp-gateway
 Content-Type: application/json
 Authorization: Bearer <api_key>
 
 {
   "jsonrpc": "2.0",
-  "id": 2,
+  "id": 3,
   "method": "tools/call",
   "params": {
     "name": "get_subscriptions",
     "arguments": {
       "customer_email": "customer@example.com",
-      "status": "active"
+      "status": "active",
+      "limit": 10
     }
   }
 }
@@ -652,12 +993,12 @@ Authorization: Bearer <api_key>
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 2,
+  "id": 3,
   "result": {
     "content": [
       {
         "type": "text",
-        "text": "Subscriptions:\n{...}"
+        "text": "Subscriptions:\n{\n  \"subscriptions\": [...]\n}"
       }
     ]
   }
@@ -669,21 +1010,32 @@ Authorization: Bearer <api_key>
 #### Create Store
 
 ```http
-POST /functions/v1/stores
+POST /.netlify/functions/stores
 Content-Type: application/json
 Authorization: Bearer <supabase_auth_token>
 
 {
   "shopify_domain": "my-store.myshopify.com",
   "store_name": "My Store",
-  "recharge_admin_token": "sk_..."
+  "recharge_admin_token": "sk_live_..."
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "shopify_domain": "my-store.myshopify.com",
+  "store_name": "My Store",
+  "is_active": true,
+  "created_at": "2024-12-24T00:00:00Z"
 }
 ```
 
 #### Create API Key
 
 ```http
-POST /functions/v1/api-keys
+POST /.netlify/functions/api-keys
 Content-Type: application/json
 Authorization: Bearer <supabase_auth_token>
 
@@ -699,15 +1051,16 @@ Authorization: Bearer <supabase_auth_token>
 ```json
 {
   "id": "uuid",
-  "api_key": "rmcp_abc123...",
-  "key_prefix": "rmcp_abc",
+  "api_key": "rmcp_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+  "key_prefix": "rmcp_a1b",
   "name": "Production Key",
   "scopes": ["read", "write"],
-  "rate_limit_tier": "standard"
+  "rate_limit_tier": "standard",
+  "created_at": "2024-12-24T00:00:00Z"
 }
 ```
 
-### 5.4 Error Responses
+### 5.4 Error Response Format
 
 ```json
 {
@@ -717,23 +1070,27 @@ Authorization: Bearer <supabase_auth_token>
     "code": -32600,
     "message": "Invalid Request",
     "data": {
-      "details": "Missing required parameter: customer_email"
+      "details": "Missing required parameter: customer_email",
+      "timestamp": "2024-12-24T00:00:00Z"
     }
   }
 }
 ```
 
-**Error Codes:**
-| Code | Message | Description |
-|------|---------|-------------|
-| -32700 | Parse error | Invalid JSON |
-| -32600 | Invalid Request | Invalid MCP request |
-| -32601 | Method not found | Unknown method |
-| -32602 | Invalid params | Invalid parameters |
-| -32603 | Internal error | Server error |
-| -32001 | Unauthorized | Invalid or missing API key |
-| -32002 | Rate limited | Too many requests |
-| -32003 | Forbidden | Insufficient scopes |
+**MCP Error Codes:**
+
+| Code | Message | HTTP Status | Description |
+|------|---------|-------------|-------------|
+| -32700 | Parse error | 400 | Invalid JSON |
+| -32600 | Invalid Request | 400 | Invalid MCP request structure |
+| -32601 | Method not found | 404 | Unknown MCP method |
+| -32602 | Invalid params | 400 | Invalid tool parameters |
+| -32603 | Internal error | 500 | Server error |
+| -32001 | Unauthorized | 401 | Invalid or missing API key |
+| -32002 | Rate limited | 429 | Too many requests |
+| -32003 | Forbidden | 403 | Insufficient scopes |
+| -32004 | Store not found | 404 | Store configuration not found |
+| -32005 | Recharge API error | 502 | Error from Recharge API |
 
 ---
 
@@ -745,170 +1102,246 @@ Authorization: Bearer <supabase_auth_token>
 rmcp_<random_32_chars>
 
 Example: rmcp_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+Prefix:  rmcp_a1b (for identification in logs)
 ```
 
-### 6.2 API Key Validation
+### 6.2 API Key Generation
 
 ```typescript
-interface APIKeyValidation {
+// src/lib/auth.ts
+
+import { createHash, randomBytes } from 'crypto';
+
+export function generateApiKey(): { apiKey: string; keyHash: string; keyPrefix: string } {
+  const randomPart = randomBytes(24).toString('base64url');
+  const apiKey = `rmcp_${randomPart}`;
+  const keyHash = createHash('sha256').update(apiKey).digest('hex');
+  const keyPrefix = apiKey.substring(0, 11); // "rmcp_" + 6 chars
+
+  return { apiKey, keyHash, keyPrefix };
+}
+
+export function hashApiKey(apiKey: string): string {
+  return createHash('sha256').update(apiKey).digest('hex');
+}
+```
+
+### 6.3 API Key Validation
+
+```typescript
+// src/lib/auth.ts
+
+import { createClient } from '@supabase/supabase-js';
+
+export interface APIKeyValidation {
   isValid: boolean;
-  keyId: string | null;
-  userId: string | null;
-  storeId: string | null;
-  scopes: string[];
-  rateLimitTier: string;
+  keyId?: string;
+  userId?: string;
+  storeId?: string;
+  scopes?: string[];
+  rateLimitTier?: string;
+  shopifyDomain?: string;
+  rechargeAdminTokenEncrypted?: string;
+  rechargeApiUrl?: string;
   error?: string;
 }
 
-async function validateAPIKey(apiKey: string): Promise<APIKeyValidation> {
-  // Extract prefix for logging
-  const prefix = apiKey.substring(0, 12);
+export async function validateAPIKey(apiKey: string): Promise<APIKeyValidation> {
+  if (!apiKey || !apiKey.startsWith('rmcp_')) {
+    return { isValid: false, error: 'Invalid API key format' };
+  }
 
-  // Hash the key for lookup
-  const keyHash = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(apiKey)
+  const keyHash = hashApiKey(apiKey);
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const hashHex = Array.from(new Uint8Array(keyHash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
 
-  // Look up in database
   const { data, error } = await supabase
-    .from('api_keys')
-    .select(`
-      id,
-      user_id,
-      store_id,
-      scopes,
-      rate_limit_tier,
-      is_active,
-      expires_at
-    `)
-    .eq('key_hash', hashHex)
-    .maybeSingle();
+    .rpc('validate_api_key', { p_key_hash: keyHash });
 
-  if (error || !data) {
-    return { isValid: false, error: 'Invalid API key' };
+  if (error) {
+    console.error('API key validation error:', error);
+    return { isValid: false, error: 'Validation failed' };
   }
 
-  if (!data.is_active) {
-    return { isValid: false, error: 'API key is deactivated' };
+  if (!data.is_valid) {
+    return { isValid: false, error: data.error || 'Invalid API key' };
   }
-
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
-    return { isValid: false, error: 'API key has expired' };
-  }
-
-  // Update last_used_at
-  await supabase
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', data.id);
 
   return {
     isValid: true,
-    keyId: data.id,
+    keyId: data.key_id,
     userId: data.user_id,
     storeId: data.store_id,
     scopes: data.scopes,
-    rateLimitTier: data.rate_limit_tier
+    rateLimitTier: data.rate_limit_tier,
+    shopifyDomain: data.shopify_domain,
+    rechargeAdminTokenEncrypted: data.recharge_admin_token_encrypted,
+    rechargeApiUrl: data.recharge_api_url
   };
 }
 ```
 
-### 6.3 Scope Requirements
-
-| Tool Category | Required Scope |
-|---------------|----------------|
-| get_* tools | `read` |
-| update_*, create_*, delete_* | `write` |
-| purge_session_cache | `admin` |
-
-### 6.4 Credential Encryption
+### 6.4 Scope Requirements by Tool
 
 ```typescript
-const ENCRYPTION_KEY = Deno.env.get('ENCRYPTION_KEY');
+// src/tools/index.ts
 
-async function encryptToken(token: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(ENCRYPTION_KEY),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits', 'deriveKey']
-  );
+export const toolScopes: Record<string, 'read' | 'write' | 'admin'> = {
+  // Customer Management
+  'get_customer': 'read',
+  'update_customer': 'write',
+  'get_customer_by_email': 'read',
+  'create_customer_session_by_id': 'admin',
 
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt']
-  );
+  // Subscription Management
+  'get_subscriptions': 'read',
+  'get_subscription': 'read',
+  'create_subscription': 'write',
+  'update_subscription': 'write',
+  'skip_subscription': 'write',
+  'unskip_subscription': 'write',
+  'swap_subscription': 'write',
+  'cancel_subscription': 'write',
+  'activate_subscription': 'write',
+  'set_subscription_next_charge_date': 'write',
 
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encoder.encode(token)
-  );
+  // Address Management
+  'get_addresses': 'read',
+  'get_address': 'read',
+  'create_address': 'write',
+  'update_address': 'write',
+  'delete_address': 'write',
 
-  // Combine salt + iv + encrypted
-  const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-  result.set(salt, 0);
-  result.set(iv, salt.length);
-  result.set(new Uint8Array(encrypted), salt.length + iv.length);
+  // Payment Methods
+  'get_payment_methods': 'read',
+  'get_payment_method': 'read',
+  'update_payment_method': 'write',
 
-  return btoa(String.fromCharCode(...result));
-}
+  // Product Catalog
+  'get_products': 'read',
+  'get_product': 'read',
 
-async function decryptToken(encryptedToken: string): Promise<string> {
-  const data = Uint8Array.from(atob(encryptedToken), c => c.charCodeAt(0));
+  // Order Management
+  'get_orders': 'read',
+  'get_order': 'read',
 
-  const salt = data.slice(0, 16);
-  const iv = data.slice(16, 28);
-  const encrypted = data.slice(28);
+  // Charge Management
+  'get_charges': 'read',
+  'get_charge': 'read',
 
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(ENCRYPTION_KEY),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits', 'deriveKey']
-  );
+  // One-time Products
+  'get_onetimes': 'read',
+  'get_onetime': 'read',
+  'create_onetime': 'write',
+  'update_onetime': 'write',
+  'delete_onetime': 'write',
 
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['decrypt']
-  );
+  // Bundle Management
+  'get_bundles': 'read',
+  'get_bundle': 'read',
+  'get_bundle_selections': 'read',
+  'get_bundle_selection': 'read',
+  'create_bundle_selection': 'write',
+  'update_bundle_selection': 'write',
+  'delete_bundle_selection': 'write',
 
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encrypted
-  );
+  // Discount Management
+  'get_discounts': 'read',
+  'get_discount': 'read',
+  'apply_discount': 'write',
+  'remove_discount': 'write',
 
-  return new TextDecoder().decode(decrypted);
+  // Utility Tools
+  'purge_session_cache': 'admin',
+  'get_session_cache_stats': 'read'
+};
+
+export function hasRequiredScope(userScopes: string[], requiredScope: string): boolean {
+  if (requiredScope === 'read') {
+    return userScopes.includes('read') || userScopes.includes('write') || userScopes.includes('admin');
+  }
+  if (requiredScope === 'write') {
+    return userScopes.includes('write') || userScopes.includes('admin');
+  }
+  if (requiredScope === 'admin') {
+    return userScopes.includes('admin');
+  }
+  return false;
 }
 ```
 
-### 6.5 Security Headers
+### 6.5 Token Encryption
 
 ```typescript
+// src/lib/encryption.ts
+
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+
+const ALGORITHM = 'aes-256-gcm';
+const KEY_LENGTH = 32;
+const IV_LENGTH = 16;
+const SALT_LENGTH = 16;
+const TAG_LENGTH = 16;
+
+export function encryptToken(token: string): string {
+  const encryptionKey = process.env.ENCRYPTION_KEY!;
+
+  const salt = randomBytes(SALT_LENGTH);
+  const key = scryptSync(encryptionKey, salt, KEY_LENGTH);
+  const iv = randomBytes(IV_LENGTH);
+
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(token, 'utf8'),
+    cipher.final()
+  ]);
+  const tag = cipher.getAuthTag();
+
+  // Format: salt (16) + iv (16) + tag (16) + encrypted
+  const result = Buffer.concat([salt, iv, tag, encrypted]);
+  return result.toString('base64');
+}
+
+export function decryptToken(encryptedToken: string): string {
+  const encryptionKey = process.env.ENCRYPTION_KEY!;
+
+  const data = Buffer.from(encryptedToken, 'base64');
+
+  const salt = data.subarray(0, SALT_LENGTH);
+  const iv = data.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const tag = data.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+  const encrypted = data.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
+
+  const key = scryptSync(encryptionKey, salt, KEY_LENGTH);
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final()
+  ]);
+
+  return decrypted.toString('utf8');
+}
+```
+
+### 6.6 Security Headers
+
+```typescript
+// Applied to all responses
+
 const securityHeaders = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Content-Security-Policy': "default-src 'none'",
-  'Cache-Control': 'no-store, no-cache, must-revalidate'
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
 };
 ```
 
@@ -916,295 +1349,11 @@ const securityHeaders = {
 
 ## 7. Tool Definitions
 
-### 7.1 Tool Registry
+### 7.1 Tool Input Schema (Public Server)
 
-All tools from the local server are preserved with modifications for multi-tenant support:
+For the public server, authentication parameters are removed from individual tool schemas since authentication is handled at the gateway level via API key:
 
-```typescript
-interface ToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: ZodSchema;
-  requiredScope: 'read' | 'write' | 'admin';
-  execute: (context: ExecutionContext, args: unknown) => Promise<ToolResult>;
-}
-
-interface ExecutionContext {
-  storeId: string;
-  shopifyDomain: string;
-  rechargeAdminToken: string;
-  rechargeApiUrl: string;
-  apiKeyId: string;
-  userId: string;
-}
-```
-
-### 7.2 Tool Categories and Scopes
-
-```typescript
-const toolRegistry: ToolDefinition[] = [
-  // Customer Management (4 tools)
-  {
-    name: 'get_customer',
-    description: 'Retrieve current customer information',
-    requiredScope: 'read',
-    inputSchema: customerSchema,
-    execute: executeGetCustomer
-  },
-  {
-    name: 'update_customer',
-    description: 'Update customer information',
-    requiredScope: 'write',
-    inputSchema: updateCustomerSchema,
-    execute: executeUpdateCustomer
-  },
-  {
-    name: 'get_customer_by_email',
-    description: 'Find customer by email address',
-    requiredScope: 'read',
-    inputSchema: customerByEmailSchema,
-    execute: executeGetCustomerByEmail
-  },
-  {
-    name: 'create_customer_session_by_id',
-    description: 'Create customer session',
-    requiredScope: 'admin',
-    inputSchema: createSessionSchema,
-    execute: executeCreateSession
-  },
-
-  // Subscription Management (9 tools)
-  {
-    name: 'get_subscriptions',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'create_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'update_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'skip_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'unskip_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'swap_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'cancel_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'activate_subscription',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'set_subscription_next_charge_date',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Address Management (5 tools)
-  {
-    name: 'get_addresses',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_address',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'create_address',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'update_address',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'delete_address',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Payment Methods (3 tools)
-  {
-    name: 'get_payment_methods',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_payment_method',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'update_payment_method',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Product Catalog (2 tools)
-  {
-    name: 'get_products',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_product',
-    requiredScope: 'read',
-    // ...
-  },
-
-  // Order Management (2 tools)
-  {
-    name: 'get_orders',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_order',
-    requiredScope: 'read',
-    // ...
-  },
-
-  // Charge Management (2 tools)
-  {
-    name: 'get_charges',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_charge',
-    requiredScope: 'read',
-    // ...
-  },
-
-  // One-time Products (5 tools)
-  {
-    name: 'get_onetimes',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_onetime',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'create_onetime',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'update_onetime',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'delete_onetime',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Bundle Management (7 tools)
-  {
-    name: 'get_bundles',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_bundle',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_bundle_selections',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_bundle_selection',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'create_bundle_selection',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'update_bundle_selection',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'delete_bundle_selection',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Discount Management (4 tools)
-  {
-    name: 'get_discounts',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'get_discount',
-    requiredScope: 'read',
-    // ...
-  },
-  {
-    name: 'apply_discount',
-    requiredScope: 'write',
-    // ...
-  },
-  {
-    name: 'remove_discount',
-    requiredScope: 'write',
-    // ...
-  },
-
-  // Utility Tools (2 tools)
-  {
-    name: 'purge_session_cache',
-    requiredScope: 'admin',
-    // ...
-  },
-  {
-    name: 'get_session_cache_stats',
-    requiredScope: 'read',
-    // ...
-  }
-];
-```
-
-### 7.3 Input Schema Modifications
-
-For the public server, authentication parameters are removed from individual tools since authentication is handled at the gateway level:
-
-**Local Server Schema:**
+**Local Server Schema (for reference):**
 ```typescript
 const baseSchema = z.object({
   session_token: z.string().optional(),
@@ -1218,40 +1367,237 @@ const baseSchema = z.object({
 **Public Server Schema:**
 ```typescript
 const baseSchema = z.object({
-  customer_id: z.string().optional(),
-  customer_email: z.string().email().optional(),
+  customer_id: z.string().optional().describe('Customer ID'),
+  customer_email: z.string().email().optional().describe('Customer email for lookup'),
 });
-// store_url, session_token, admin_token are derived from API key context
+```
+
+### 7.2 Complete Tool Schemas
+
+```typescript
+// src/tools/schemas.ts
+
+import { z } from 'zod';
+
+// Base schema for customer identification
+export const customerIdentificationSchema = z.object({
+  customer_id: z.string().optional().describe('Customer ID'),
+  customer_email: z.string().email().optional().describe('Customer email for lookup'),
+});
+
+// Subscription schemas
+export const getSubscriptionsSchema = customerIdentificationSchema.extend({
+  status: z.enum(['active', 'cancelled', 'expired']).optional().describe('Filter by status'),
+  limit: z.number().max(250).default(50).describe('Number of results'),
+  page: z.number().default(1).describe('Page number'),
+});
+
+export const subscriptionIdSchema = customerIdentificationSchema.extend({
+  subscription_id: z.string().describe('Subscription ID'),
+});
+
+export const createSubscriptionSchema = customerIdentificationSchema.extend({
+  address_id: z.string().describe('Address ID'),
+  next_charge_scheduled_at: z.string().describe('Next charge date (YYYY-MM-DD)'),
+  order_interval_frequency: z.number().min(1).describe('Interval frequency'),
+  order_interval_unit: z.enum(['day', 'week', 'month']).describe('Interval unit'),
+  quantity: z.number().min(1).max(1000).describe('Quantity'),
+  variant_id: z.number().min(1).describe('Product variant ID'),
+  properties: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+  })).optional().describe('Product properties'),
+});
+
+export const updateSubscriptionSchema = subscriptionIdSchema.extend({
+  next_charge_scheduled_at: z.string().optional(),
+  order_interval_frequency: z.number().min(1).optional(),
+  order_interval_unit: z.enum(['day', 'week', 'month']).optional(),
+  quantity: z.number().min(1).max(1000).optional(),
+  variant_id: z.number().min(1).optional(),
+  properties: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+  })).optional(),
+});
+
+export const skipSubscriptionSchema = subscriptionIdSchema.extend({
+  date: z.string().describe('Date to skip (YYYY-MM-DD)'),
+});
+
+export const swapSubscriptionSchema = subscriptionIdSchema.extend({
+  variant_id: z.number().min(1).describe('New variant ID'),
+  quantity: z.number().optional().describe('New quantity'),
+});
+
+export const cancelSubscriptionSchema = subscriptionIdSchema.extend({
+  cancellation_reason: z.string().optional().describe('Reason for cancellation'),
+  cancellation_reason_comments: z.string().optional().describe('Additional comments'),
+});
+
+// Address schemas
+export const addressIdSchema = customerIdentificationSchema.extend({
+  address_id: z.string().describe('Address ID'),
+});
+
+export const createAddressSchema = customerIdentificationSchema.extend({
+  address1: z.string().min(1).max(255).describe('Street address'),
+  address2: z.string().max(255).optional().describe('Apartment, suite, etc.'),
+  city: z.string().min(1).max(100).describe('City'),
+  province: z.string().min(1).max(100).describe('State/Province'),
+  zip: z.string().min(2).max(12).describe('ZIP/Postal code'),
+  country: z.string().min(2).max(100).describe('Country'),
+  first_name: z.string().min(1).max(255).describe('First name'),
+  last_name: z.string().min(1).max(255).describe('Last name'),
+  company: z.string().max(255).optional().describe('Company name'),
+  phone: z.string().optional().describe('Phone number'),
+});
+
+export const updateAddressSchema = addressIdSchema.extend({
+  address1: z.string().min(1).max(255).optional(),
+  address2: z.string().max(255).optional(),
+  city: z.string().min(1).max(100).optional(),
+  province: z.string().min(1).max(100).optional(),
+  zip: z.string().min(2).max(12).optional(),
+  country: z.string().min(2).max(100).optional(),
+  first_name: z.string().min(1).max(255).optional(),
+  last_name: z.string().min(1).max(255).optional(),
+  company: z.string().max(255).optional(),
+  phone: z.string().optional(),
+});
+
+// One-time schemas
+export const onetimeIdSchema = customerIdentificationSchema.extend({
+  onetime_id: z.string().describe('One-time product ID'),
+});
+
+export const createOnetimeSchema = customerIdentificationSchema.extend({
+  variant_id: z.number().describe('Product variant ID'),
+  quantity: z.number().describe('Quantity'),
+  next_charge_scheduled_at: z.string().describe('Next charge date'),
+  price: z.number().optional().describe('Price override'),
+  properties: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+  })).optional(),
+});
+
+// Bundle schemas
+export const bundleIdSchema = customerIdentificationSchema.extend({
+  bundle_id: z.string().describe('Bundle ID'),
+});
+
+export const bundleSelectionIdSchema = customerIdentificationSchema.extend({
+  bundle_selection_id: z.string().describe('Bundle selection ID'),
+});
+
+export const createBundleSelectionSchema = customerIdentificationSchema.extend({
+  bundle_id: z.string().describe('Bundle ID'),
+  variant_id: z.number().describe('Variant ID'),
+  quantity: z.number().describe('Quantity'),
+  external_variant_id: z.number().optional(),
+});
+
+// Discount schemas
+export const discountIdSchema = customerIdentificationSchema.extend({
+  discount_id: z.string().describe('Discount ID'),
+});
+
+export const applyDiscountSchema = customerIdentificationSchema.extend({
+  discount_code: z.string().describe('Discount code to apply'),
+});
+
+// Customer schemas
+export const updateCustomerSchema = customerIdentificationSchema.extend({
+  email: z.string().email().optional().describe('New email'),
+  first_name: z.string().min(1).max(255).optional().describe('First name'),
+  last_name: z.string().min(1).max(255).optional().describe('Last name'),
+  phone: z.string().optional().describe('Phone number'),
+});
+
+export const customerByEmailSchema = z.object({
+  email: z.string().email().describe('Customer email'),
+});
+
+export const createSessionSchema = z.object({
+  customer_id: z.string().describe('Customer ID'),
+  return_url: z.string().optional().describe('Return URL'),
+});
+
+// Utility schemas
+export const purgeSessionCacheSchema = z.object({
+  all: z.boolean().default(true).describe('Clear all sessions'),
+  older_than_minutes: z.number().min(1).max(1440).optional().describe('Clear older than X minutes'),
+  reason: z.string().default('manual purge').describe('Reason for purging'),
+});
+
+// Pagination schemas
+export const paginationSchema = customerIdentificationSchema.extend({
+  limit: z.number().max(250).default(50).describe('Number of results'),
+  page: z.number().default(1).describe('Page number'),
+});
 ```
 
 ---
 
-## 8. Edge Function Implementation
+## 8. Netlify Functions Implementation
 
-### 8.1 MCP Gateway Function
+### 8.1 Netlify Configuration
+
+```toml
+# netlify.toml
+
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@supabase/supabase-js"]
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+
+[functions."mcp-gateway"]
+  timeout = 30
+
+[functions."stores"]
+  timeout = 10
+
+[functions."api-keys"]
+  timeout = 10
+```
+
+### 8.2 MCP Gateway Function
 
 ```typescript
-// supabase/functions/mcp-gateway/index.ts
+// netlify/functions/mcp-gateway.ts
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
+import { validateAPIKey, hashApiKey } from '../../src/lib/auth';
+import { decryptToken } from '../../src/lib/encryption';
+import { RechargeClient } from '../../src/recharge/client';
+import { SessionCache } from '../../src/recharge/session-cache';
+import { tools, toolScopes, hasRequiredScope } from '../../src/tools';
 
 interface MCPRequest {
-  jsonrpc: "2.0";
+  jsonrpc: '2.0';
   id: number | string;
   method: string;
   params?: Record<string, unknown>;
 }
 
 interface MCPResponse {
-  jsonrpc: "2.0";
-  id: number | string;
+  jsonrpc: '2.0';
+  id: number | string | null;
   result?: unknown;
   error?: {
     code: number;
@@ -1260,345 +1606,321 @@ interface MCPResponse {
   };
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json',
+};
+
+function jsonRPCError(code: number, message: string, id?: number | string | null, data?: unknown): MCPResponse {
+  return {
+    jsonrpc: '2.0',
+    id: id ?? null,
+    error: { code, message, data }
+  };
+}
+
+function jsonRPCSuccess(id: number | string, result: unknown): MCPResponse {
+  return {
+    jsonrpc: '2.0',
+    id,
+    result
+  };
+}
+
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify(jsonRPCError(-32600, 'Method not allowed'))
+    };
   }
 
   const startTime = Date.now();
 
   try {
-    // Extract API key from Authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return jsonRPCError(-32001, "Unauthorized: Missing API key");
+    // Extract API key
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify(jsonRPCError(-32001, 'Unauthorized: Missing API key'))
+      };
     }
     const apiKey = authHeader.substring(7);
 
-    // Parse MCP request
-    const mcpRequest: MCPRequest = await req.json();
+    // Parse request body
+    let mcpRequest: MCPRequest;
+    try {
+      mcpRequest = JSON.parse(event.body || '{}');
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify(jsonRPCError(-32700, 'Parse error: Invalid JSON'))
+      };
+    }
 
-    if (mcpRequest.jsonrpc !== "2.0") {
-      return jsonRPCError(-32600, "Invalid Request: jsonrpc must be 2.0", mcpRequest.id);
+    if (mcpRequest.jsonrpc !== '2.0') {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify(jsonRPCError(-32600, 'Invalid Request: jsonrpc must be 2.0', mcpRequest.id))
+      };
+    }
+
+    // Validate API key
+    const validation = await validateAPIKey(apiKey);
+    if (!validation.isValid) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify(jsonRPCError(-32001, `Unauthorized: ${validation.error}`, mcpRequest.id))
+      };
     }
 
     // Initialize Supabase client
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Validate API key
-    const validation = await validateAPIKey(supabase, apiKey);
-    if (!validation.isValid) {
-      return jsonRPCError(-32001, `Unauthorized: ${validation.error}`, mcpRequest.id);
-    }
-
     // Check rate limit
-    const withinLimit = await checkRateLimit(supabase, validation.keyId!, validation.rateLimitTier);
-    if (!withinLimit) {
-      return jsonRPCError(-32002, "Rate limit exceeded", mcpRequest.id);
-    }
+    const { data: rateLimitResult } = await supabase.rpc('check_and_increment_rate_limit', {
+      p_api_key_id: validation.keyId,
+      p_tier: validation.rateLimitTier
+    });
 
-    // Get store configuration
-    const store = await getStoreConfig(supabase, validation.storeId!);
-    if (!store) {
-      return jsonRPCError(-32603, "Store configuration not found", mcpRequest.id);
+    if (!rateLimitResult?.within_limit) {
+      // Log rate limited request
+      await logUsage(supabase, {
+        apiKeyId: validation.keyId!,
+        storeId: validation.storeId!,
+        userId: validation.userId!,
+        toolName: mcpRequest.method,
+        status: 'rate_limited',
+        executionTimeMs: Date.now() - startTime
+      });
+
+      return {
+        statusCode: 429,
+        headers: {
+          ...corsHeaders,
+          'X-RateLimit-Limit': rateLimitResult?.limit?.toString() || '60',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult?.reset_at || new Date(Date.now() + 60000).toISOString(),
+          'Retry-After': '60'
+        },
+        body: JSON.stringify(jsonRPCError(-32002, 'Rate limit exceeded', mcpRequest.id, {
+          limit: rateLimitResult?.limit,
+          reset_at: rateLimitResult?.reset_at
+        }))
+      };
     }
 
     // Handle MCP methods
     let result: unknown;
 
     switch (mcpRequest.method) {
-      case "initialize":
+      case 'initialize':
         result = {
-          protocolVersion: "2024-11-05",
+          protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
           serverInfo: {
-            name: "recharge-storefront-api-mcp",
-            version: "1.0.0"
+            name: 'recharge-storefront-api-mcp',
+            version: '1.0.0'
           }
         };
         break;
 
-      case "tools/list":
-        result = { tools: getToolDefinitions(validation.scopes) };
+      case 'tools/list':
+        result = { tools: getToolDefinitions(validation.scopes!) };
         break;
 
-      case "tools/call":
+      case 'tools/call':
         result = await executeToolCall(
           supabase,
-          store,
           validation,
           mcpRequest.params as { name: string; arguments?: Record<string, unknown> }
         );
         break;
 
       default:
-        return jsonRPCError(-32601, `Method not found: ${mcpRequest.method}`, mcpRequest.id);
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify(jsonRPCError(-32601, `Method not found: ${mcpRequest.method}`, mcpRequest.id))
+        };
     }
 
-    // Log usage
+    // Log successful request
     const executionTime = Date.now() - startTime;
     await logUsage(supabase, {
       apiKeyId: validation.keyId!,
       storeId: validation.storeId!,
       userId: validation.userId!,
       toolName: mcpRequest.method,
-      status: "success",
+      status: 'success',
       executionTimeMs: executionTime
     });
 
-    return new Response(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        id: mcpRequest.id,
-        result
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-  } catch (error) {
-    console.error("MCP Gateway Error:", error);
-    return jsonRPCError(-32603, `Internal error: ${error.message}`);
-  }
-});
-
-function jsonRPCError(code: number, message: string, id?: number | string): Response {
-  return new Response(
-    JSON.stringify({
-      jsonrpc: "2.0",
-      id: id ?? null,
-      error: { code, message }
-    }),
-    {
-      status: code === -32001 ? 401 : code === -32002 ? 429 : 400,
+    return {
+      statusCode: 200,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json"
-      }
-    }
-  );
+        'X-RateLimit-Limit': rateLimitResult?.limit?.toString() || '60',
+        'X-RateLimit-Remaining': (rateLimitResult?.limit - rateLimitResult?.current_count)?.toString() || '59'
+      },
+      body: JSON.stringify(jsonRPCSuccess(mcpRequest.id, result))
+    };
+
+  } catch (error: any) {
+    console.error('MCP Gateway Error:', error);
+
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify(jsonRPCError(-32603, `Internal error: ${error.message}`))
+    };
+  }
+};
+
+function getToolDefinitions(scopes: string[]) {
+  return tools
+    .filter(tool => hasRequiredScope(scopes, toolScopes[tool.name] || 'read'))
+    .map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema
+    }));
 }
-```
 
-### 8.2 Tool Executor Module
-
-```typescript
-// supabase/functions/mcp-gateway/tool-executor.ts
-
-import { RechargeClient } from "./recharge-client.ts";
-import { SessionCache } from "./session-cache.ts";
-
-interface ExecuteToolCallParams {
-  name: string;
-  arguments?: Record<string, unknown>;
-}
-
-export async function executeToolCall(
-  supabase: SupabaseClient,
-  store: StoreConfig,
-  validation: APIKeyValidation,
-  params: ExecuteToolCallParams
-): Promise<ToolResult> {
+async function executeToolCall(
+  supabase: any,
+  validation: any,
+  params: { name: string; arguments?: Record<string, unknown> }
+) {
   const { name, arguments: args = {} } = params;
 
-  // Find tool definition
-  const tool = toolRegistry.find(t => t.name === name);
+  // Find tool
+  const tool = tools.find(t => t.name === name);
   if (!tool) {
     throw new Error(`Tool not found: ${name}`);
   }
 
   // Check scope
-  if (!validation.scopes.includes(tool.requiredScope)) {
-    throw new Error(`Insufficient permissions. Required scope: ${tool.requiredScope}`);
+  const requiredScope = toolScopes[name] || 'read';
+  if (!hasRequiredScope(validation.scopes, requiredScope)) {
+    throw new Error(`Insufficient permissions. Required scope: ${requiredScope}`);
   }
 
-  // Validate input schema
+  // Validate input
   const validatedArgs = tool.inputSchema.parse(args);
 
   // Decrypt admin token
-  const adminToken = await decryptToken(store.rechargeAdminTokenEncrypted);
+  const adminToken = decryptToken(validation.rechargeAdminTokenEncrypted);
 
-  // Create execution context
-  const context: ExecutionContext = {
-    storeId: store.id,
-    shopifyDomain: store.shopifyDomain,
-    rechargeAdminToken: adminToken,
-    rechargeApiUrl: store.rechargeApiUrl,
-    apiKeyId: validation.keyId!,
-    userId: validation.userId!
-  };
-
-  // Initialize session cache for this store
-  const sessionCache = new SessionCache(supabase, store.id);
+  // Create session cache
+  const sessionCache = new SessionCache(supabase, validation.storeId);
 
   // Create Recharge client
   const client = new RechargeClient({
-    storeUrl: context.shopifyDomain,
-    adminToken: context.rechargeAdminToken,
-    apiUrl: context.rechargeApiUrl,
+    storeUrl: validation.shopifyDomain,
+    adminToken,
+    apiUrl: validation.rechargeApiUrl,
     sessionCache
   });
 
   // Execute tool
-  return await tool.execute(context, client, validatedArgs);
+  return await tool.execute(client, validatedArgs);
 }
-```
 
-### 8.3 Session Cache (Database-Backed)
-
-```typescript
-// supabase/functions/mcp-gateway/session-cache.ts
-
-export class SessionCache {
-  private supabase: SupabaseClient;
-  private storeId: string;
-
-  constructor(supabase: SupabaseClient, storeId: string) {
-    this.supabase = supabase;
-    this.storeId = storeId;
-  }
-
-  async getSessionToken(customerId: string): Promise<string | null> {
-    const { data, error } = await this.supabase
-      .from("session_tokens")
-      .select("session_token_encrypted, expires_at")
-      .eq("store_id", this.storeId)
-      .eq("customer_id", customerId)
-      .maybeSingle();
-
-    if (error || !data) {
-      return null;
-    }
-
-    // Check expiry
-    if (new Date(data.expires_at) < new Date()) {
-      await this.clearSession(customerId);
-      return null;
-    }
-
-    // Update last_used_at
-    await this.supabase
-      .from("session_tokens")
-      .update({ last_used_at: new Date().toISOString() })
-      .eq("store_id", this.storeId)
-      .eq("customer_id", customerId);
-
-    // Decrypt and return
-    return await decryptToken(data.session_token_encrypted);
-  }
-
-  async setSessionToken(
-    customerId: string,
-    sessionToken: string,
-    customerEmail?: string
-  ): Promise<void> {
-    const encrypted = await encryptToken(sessionToken);
-
-    await this.supabase
-      .from("session_tokens")
-      .upsert({
-        store_id: this.storeId,
-        customer_id: customerId,
-        customer_email: customerEmail,
-        session_token_encrypted: encrypted,
-        last_used_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString() // 4 hours
-      }, {
-        onConflict: "store_id,customer_id"
-      });
-  }
-
-  async getCustomerIdByEmail(email: string): Promise<string | null> {
-    const { data } = await this.supabase
-      .from("session_tokens")
-      .select("customer_id")
-      .eq("store_id", this.storeId)
-      .eq("customer_email", email)
-      .maybeSingle();
-
-    return data?.customer_id ?? null;
-  }
-
-  async clearSession(customerId: string): Promise<void> {
-    await this.supabase
-      .from("session_tokens")
-      .delete()
-      .eq("store_id", this.storeId)
-      .eq("customer_id", customerId);
-  }
-
-  async clearAll(): Promise<number> {
-    const { data } = await this.supabase
-      .from("session_tokens")
-      .delete()
-      .eq("store_id", this.storeId)
-      .select("id");
-
-    return data?.length ?? 0;
-  }
-
-  async getStats(): Promise<SessionCacheStats> {
-    const { data, count } = await this.supabase
-      .from("session_tokens")
-      .select("created_at", { count: "exact" })
-      .eq("store_id", this.storeId)
-      .order("created_at", { ascending: true });
-
-    const emailCount = await this.supabase
-      .from("session_tokens")
-      .select("customer_email", { count: "exact" })
-      .eq("store_id", this.storeId)
-      .not("customer_email", "is", null);
-
-    return {
-      totalSessions: count ?? 0,
-      emailMappings: emailCount.count ?? 0,
-      oldestSessionAge: data?.[0]
-        ? Math.floor((Date.now() - new Date(data[0].created_at).getTime()) / 1000)
-        : null,
-      newestSessionAge: data?.[data.length - 1]
-        ? Math.floor((Date.now() - new Date(data[data.length - 1].created_at).getTime()) / 1000)
-        : null
-    };
+async function logUsage(supabase: any, data: {
+  apiKeyId: string;
+  storeId: string;
+  userId: string;
+  toolName: string;
+  status: 'success' | 'error' | 'rate_limited';
+  executionTimeMs: number;
+  errorMessage?: string;
+}) {
+  try {
+    await supabase.from('usage_logs').insert({
+      api_key_id: data.apiKeyId,
+      store_id: data.storeId,
+      user_id: data.userId,
+      tool_name: data.toolName,
+      status: data.status,
+      execution_time_ms: data.executionTimeMs,
+      error_message: data.errorMessage
+    });
+  } catch (error) {
+    console.error('Failed to log usage:', error);
   }
 }
 ```
 
-### 8.4 Recharge Client (Adapted for Deno)
+### 8.3 Recharge Client
 
 ```typescript
-// supabase/functions/mcp-gateway/recharge-client.ts
+// src/recharge/client.ts
+
+import axios, { AxiosInstance } from 'axios';
+import { SessionCache } from './session-cache';
+
+export interface RechargeClientConfig {
+  storeUrl: string;
+  adminToken: string;
+  apiUrl?: string;
+  sessionCache: SessionCache;
+}
 
 export class RechargeClient {
   private storeUrl: string;
   private adminToken: string;
   private apiUrl: string;
   private sessionCache: SessionCache;
+  private storefrontApi: AxiosInstance;
+  private adminApi: AxiosInstance;
 
-  constructor(config: {
-    storeUrl: string;
-    adminToken: string;
-    apiUrl?: string;
-    sessionCache: SessionCache;
-  }) {
+  constructor(config: RechargeClientConfig) {
     this.storeUrl = config.storeUrl;
     this.adminToken = config.adminToken;
-    this.apiUrl = config.apiUrl ?? "https://api.rechargeapps.com";
-    this.sessionCache = sessionCache;
+    this.apiUrl = config.apiUrl || 'https://api.rechargeapps.com';
+    this.sessionCache = config.sessionCache;
+
+    this.storefrontApi = axios.create({
+      baseURL: this.apiUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Recharge-Version': '2021-11'
+      }
+    });
+
+    this.adminApi = axios.create({
+      baseURL: this.apiUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Recharge-Access-Token': this.adminToken,
+        'X-Recharge-Version': '2021-11'
+      }
+    });
   }
 
-  async getOrCreateSessionToken(
-    customerId?: string,
-    customerEmail?: string
-  ): Promise<string> {
-    // Look up cached session
+  async getOrCreateSessionToken(customerId?: string, customerEmail?: string): Promise<string> {
+    // Check cache first
     if (customerId) {
       const cached = await this.sessionCache.getSessionToken(customerId);
       if (cached) return cached;
@@ -1612,140 +1934,375 @@ export class RechargeClient {
       }
     }
 
-    // Look up customer if needed
+    // Look up customer by email if needed
     if (!customerId && customerEmail) {
       const customer = await this.getCustomerByEmail(customerEmail);
       customerId = customer.id.toString();
     }
 
     if (!customerId) {
-      throw new Error("Customer ID or email required for session creation");
+      throw new Error('Customer ID or email required for session creation');
     }
 
     // Create new session
     const session = await this.createCustomerSessionById(customerId);
-    await this.sessionCache.setSessionToken(
-      customerId,
-      session.apiToken,
-      customerEmail
-    );
+    await this.sessionCache.setSessionToken(customerId, session.apiToken, customerEmail);
 
     return session.apiToken;
   }
 
-  async makeRequest(
+  private async makeRequest(
     method: string,
     endpoint: string,
-    data?: Record<string, unknown>,
-    params?: Record<string, unknown>,
+    data?: any,
+    params?: any,
     customerId?: string,
     customerEmail?: string
-  ): Promise<unknown> {
+  ) {
     const sessionToken = await this.getOrCreateSessionToken(customerId, customerEmail);
 
-    const url = new URL(endpoint, this.apiUrl);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          url.searchParams.set(key, String(value));
-        }
-      });
-    }
-
-    const response = await fetch(url.toString(), {
-      method: method.toUpperCase(),
+    const response = await this.storefrontApi.request({
+      method,
+      url: endpoint,
+      data,
+      params,
       headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "X-Recharge-Access-Token": sessionToken,
-        "X-Recharge-Version": "2021-11"
-      },
-      body: data ? JSON.stringify(data) : undefined
+        'X-Recharge-Access-Token': sessionToken
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new RechargeAPIError(
-        errorData.message ?? `HTTP ${response.status}`,
-        response.status,
-        errorData.error_code
-      );
-    }
-
-    return await response.json();
+    return response.data;
   }
 
-  async makeAdminRequest(
-    method: string,
-    endpoint: string,
-    data?: Record<string, unknown>,
-    params?: Record<string, unknown>
-  ): Promise<unknown> {
-    const url = new URL(endpoint, this.apiUrl);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          url.searchParams.set(key, String(value));
-        }
-      });
-    }
-
-    const response = await fetch(url.toString(), {
-      method: method.toUpperCase(),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "X-Recharge-Access-Token": this.adminToken,
-        "X-Recharge-Version": "2021-11"
-      },
-      body: data ? JSON.stringify(data) : undefined
+  private async makeAdminRequest(method: string, endpoint: string, data?: any, params?: any) {
+    const response = await this.adminApi.request({
+      method,
+      url: endpoint,
+      data,
+      params
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new RechargeAPIError(
-        errorData.message ?? `HTTP ${response.status}`,
-        response.status,
-        errorData.error_code
-      );
-    }
-
-    return await response.json();
+    return response.data;
   }
 
   // Customer methods
-  async getCustomer(customerId?: string, customerEmail?: string): Promise<Customer> {
-    const response = await this.makeRequest("GET", "/customer", null, null, customerId, customerEmail);
-    return response.customer;
+  async getCustomer(customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/customer', null, null, customerId, customerEmail);
   }
 
-  async getCustomerByEmail(email: string): Promise<Customer> {
-    const response = await this.makeAdminRequest("GET", "/customers", null, { email });
+  async updateCustomer(updateData: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', '/customer', updateData, null, customerId, customerEmail);
+  }
+
+  async getCustomerByEmail(email: string) {
+    const response = await this.makeAdminRequest('GET', '/customers', null, { email });
     if (!response.customers?.length) {
       throw new Error(`Customer not found: ${email}`);
     }
     return response.customers[0];
   }
 
-  async createCustomerSessionById(customerId: string): Promise<CustomerSession> {
-    const response = await this.makeAdminRequest("POST", `/customers/${customerId}/sessions`);
+  async createCustomerSessionById(customerId: string, options?: any) {
+    const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, options);
     return response.customer_session;
   }
 
   // Subscription methods
-  async getSubscriptions(params?: SubscriptionParams, customerId?: string, customerEmail?: string) {
-    return this.makeRequest("GET", "/subscriptions", null, params, customerId, customerEmail);
+  async getSubscriptions(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/subscriptions', null, params, customerId, customerEmail);
   }
 
   async getSubscription(subscriptionId: string, customerId?: string, customerEmail?: string) {
-    return this.makeRequest("GET", `/subscriptions/${subscriptionId}`, null, null, customerId, customerEmail);
+    return this.makeRequest('GET', `/subscriptions/${subscriptionId}`, null, null, customerId, customerEmail);
+  }
+
+  async createSubscription(data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', '/subscriptions', data, null, customerId, customerEmail);
+  }
+
+  async updateSubscription(subscriptionId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', `/subscriptions/${subscriptionId}`, data, null, customerId, customerEmail);
   }
 
   async skipSubscription(subscriptionId: string, date: string, customerId?: string, customerEmail?: string) {
-    return this.makeRequest("POST", `/subscriptions/${subscriptionId}/skip`, { date }, null, customerId, customerEmail);
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/skip`, { date }, null, customerId, customerEmail);
   }
 
-  // ... Additional methods matching local server implementation
+  async unskipSubscription(subscriptionId: string, date: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/unskip`, { date }, null, customerId, customerEmail);
+  }
+
+  async swapSubscription(subscriptionId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/swap`, data, null, customerId, customerEmail);
+  }
+
+  async cancelSubscription(subscriptionId: string, data?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/cancel`, data, null, customerId, customerEmail);
+  }
+
+  async activateSubscription(subscriptionId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/activate`, null, null, customerId, customerEmail);
+  }
+
+  async setNextChargeDate(subscriptionId: string, date: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', `/subscriptions/${subscriptionId}/set_next_charge_date`, { date }, null, customerId, customerEmail);
+  }
+
+  // Address methods
+  async getAddresses(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/addresses', null, params, customerId, customerEmail);
+  }
+
+  async getAddress(addressId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/addresses/${addressId}`, null, null, customerId, customerEmail);
+  }
+
+  async createAddress(data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', '/addresses', data, null, customerId, customerEmail);
+  }
+
+  async updateAddress(addressId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', `/addresses/${addressId}`, data, null, customerId, customerEmail);
+  }
+
+  async deleteAddress(addressId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('DELETE', `/addresses/${addressId}`, null, null, customerId, customerEmail);
+  }
+
+  // Payment methods
+  async getPaymentMethods(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/payment_methods', null, params, customerId, customerEmail);
+  }
+
+  async getPaymentMethod(paymentMethodId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/payment_methods/${paymentMethodId}`, null, null, customerId, customerEmail);
+  }
+
+  async updatePaymentMethod(paymentMethodId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', `/payment_methods/${paymentMethodId}`, data, null, customerId, customerEmail);
+  }
+
+  // Product methods
+  async getProducts(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/products', null, params, customerId, customerEmail);
+  }
+
+  async getProduct(productId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/products/${productId}`, null, null, customerId, customerEmail);
+  }
+
+  // Order methods
+  async getOrders(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/orders', null, params, customerId, customerEmail);
+  }
+
+  async getOrder(orderId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/orders/${orderId}`, null, null, customerId, customerEmail);
+  }
+
+  // Charge methods
+  async getCharges(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/charges', null, params, customerId, customerEmail);
+  }
+
+  async getCharge(chargeId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/charges/${chargeId}`, null, null, customerId, customerEmail);
+  }
+
+  // One-time methods
+  async getOnetimes(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/onetimes', null, params, customerId, customerEmail);
+  }
+
+  async getOnetime(onetimeId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail);
+  }
+
+  async createOnetime(data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', '/onetimes', data, null, customerId, customerEmail);
+  }
+
+  async updateOnetime(onetimeId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', `/onetimes/${onetimeId}`, data, null, customerId, customerEmail);
+  }
+
+  async deleteOnetime(onetimeId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('DELETE', `/onetimes/${onetimeId}`, null, null, customerId, customerEmail);
+  }
+
+  // Bundle methods
+  async getBundles(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/bundles', null, params, customerId, customerEmail);
+  }
+
+  async getBundle(bundleId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/bundles/${bundleId}`, null, null, customerId, customerEmail);
+  }
+
+  async getBundleSelections(bundleId: string, params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/bundles/${bundleId}/bundle_selections`, null, params, customerId, customerEmail);
+  }
+
+  async getBundleSelection(bundleSelectionId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail);
+  }
+
+  async createBundleSelection(data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', '/bundle_selections', data, null, customerId, customerEmail);
+  }
+
+  async updateBundleSelection(bundleSelectionId: string, data: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('PUT', `/bundle_selections/${bundleSelectionId}`, data, null, customerId, customerEmail);
+  }
+
+  async deleteBundleSelection(bundleSelectionId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('DELETE', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail);
+  }
+
+  // Discount methods
+  async getDiscounts(params?: any, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', '/discounts', null, params, customerId, customerEmail);
+  }
+
+  async getDiscount(discountId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('GET', `/discounts/${discountId}`, null, null, customerId, customerEmail);
+  }
+
+  async applyDiscount(discountCode: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('POST', '/discounts', { discount_code: discountCode }, null, customerId, customerEmail);
+  }
+
+  async removeDiscount(discountId: string, customerId?: string, customerEmail?: string) {
+    return this.makeRequest('DELETE', `/discounts/${discountId}`, null, null, customerId, customerEmail);
+  }
+}
+```
+
+### 8.4 Session Cache (Database-Backed)
+
+```typescript
+// src/recharge/session-cache.ts
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { encryptToken, decryptToken } from '../lib/encryption';
+
+export class SessionCache {
+  private supabase: SupabaseClient;
+  private storeId: string;
+
+  constructor(supabase: SupabaseClient, storeId: string) {
+    this.supabase = supabase;
+    this.storeId = storeId;
+  }
+
+  async getSessionToken(customerId: string): Promise<string | null> {
+    const { data } = await this.supabase
+      .rpc('get_valid_session_token', {
+        p_store_id: this.storeId,
+        p_customer_id: customerId
+      });
+
+    if (!data || !data[0] || !data[0].is_valid) {
+      return null;
+    }
+
+    try {
+      return decryptToken(data[0].session_token_encrypted);
+    } catch (error) {
+      console.error('Failed to decrypt session token:', error);
+      await this.clearSession(customerId);
+      return null;
+    }
+  }
+
+  async setSessionToken(customerId: string, sessionToken: string, customerEmail?: string): Promise<void> {
+    const encrypted = encryptToken(sessionToken);
+
+    await this.supabase.rpc('upsert_session_token', {
+      p_store_id: this.storeId,
+      p_customer_id: customerId,
+      p_customer_email: customerEmail || null,
+      p_session_token_encrypted: encrypted,
+      p_expires_hours: 4
+    });
+  }
+
+  async getCustomerIdByEmail(email: string): Promise<string | null> {
+    const { data } = await this.supabase
+      .from('session_tokens')
+      .select('customer_id')
+      .eq('store_id', this.storeId)
+      .eq('customer_email', email)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    return data?.customer_id ?? null;
+  }
+
+  async clearSession(customerId: string): Promise<void> {
+    await this.supabase
+      .from('session_tokens')
+      .delete()
+      .eq('store_id', this.storeId)
+      .eq('customer_id', customerId);
+  }
+
+  async clearAll(): Promise<number> {
+    const { data } = await this.supabase
+      .from('session_tokens')
+      .delete()
+      .eq('store_id', this.storeId)
+      .select('id');
+
+    return data?.length ?? 0;
+  }
+
+  async getStats(): Promise<{
+    totalSessions: number;
+    emailMappings: number;
+    oldestSessionAge: number | null;
+    newestSessionAge: number | null;
+  }> {
+    const { count: totalSessions } = await this.supabase
+      .from('session_tokens')
+      .select('*', { count: 'exact', head: true })
+      .eq('store_id', this.storeId);
+
+    const { count: emailMappings } = await this.supabase
+      .from('session_tokens')
+      .select('*', { count: 'exact', head: true })
+      .eq('store_id', this.storeId)
+      .not('customer_email', 'is', null);
+
+    const { data: oldest } = await this.supabase
+      .from('session_tokens')
+      .select('created_at')
+      .eq('store_id', this.storeId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: newest } = await this.supabase
+      .from('session_tokens')
+      .select('created_at')
+      .eq('store_id', this.storeId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const now = Date.now();
+
+    return {
+      totalSessions: totalSessions ?? 0,
+      emailMappings: emailMappings ?? 0,
+      oldestSessionAge: oldest
+        ? Math.floor((now - new Date(oldest.created_at).getTime()) / 1000)
+        : null,
+      newestSessionAge: newest
+        ? Math.floor((now - new Date(newest.created_at).getTime()) / 1000)
+        : null
+    };
+  }
 }
 ```
 
@@ -1757,35 +2314,58 @@ export class RechargeClient {
 
 ```
 1. Tool call received with customer_id or customer_email
-2. Check database for cached session token
+2. Check Supabase for cached session token (with expiry check)
 3. If cached and not expired:
-   a. Update last_used_at
-   b. Return cached token
+   a. Decrypt token
+   b. Update last_used_at
+   c. Return decrypted token
 4. If not cached or expired:
-   a. Look up customer (if email provided)
+   a. Look up customer via Admin API (if email provided)
    b. Create session via Admin API
-   c. Encrypt and store in database
+   c. Encrypt and store in Supabase
    d. Return new token
 5. On 401/403 from Recharge:
-   a. Clear cached session
+   a. Clear cached session from Supabase
    b. Retry with new session (up to 2 retries)
 ```
 
 ### 9.2 Session Expiry Strategy
 
-| Event | Action |
-|-------|--------|
-| Session created | Set expires_at = now + 4 hours |
-| Session used | Update last_used_at |
-| Session expired | Delete on next access |
-| Hourly cron | Delete all expired sessions |
-| Rate limit exceeded | No session impact |
+| Event | Action | TTL |
+|-------|--------|-----|
+| Session created | Set expires_at | 4 hours |
+| Session used | Update last_used_at | - |
+| Session expired | Deleted on next access or cron | - |
+| Scheduled cleanup | Delete all expired sessions | Every hour |
 
-### 9.3 Multi-Customer Isolation
+### 9.3 Scheduled Cleanup (Netlify Scheduled Function)
 
-Each session is scoped to:
-- `store_id`: Prevents cross-store access
-- `customer_id`: Prevents cross-customer access
+```typescript
+// netlify/functions/cleanup-sessions.ts
+
+import { Handler, schedule } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
+
+const handler: Handler = async () => {
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Cleanup expired sessions
+  const { data: sessionsDeleted } = await supabase.rpc('cleanup_expired_sessions');
+
+  // Cleanup old rate limits
+  const { data: rateLimitsDeleted } = await supabase.rpc('cleanup_old_rate_limits');
+
+  console.log(`Cleanup complete: ${sessionsDeleted} sessions, ${rateLimitsDeleted} rate limits`);
+
+  return { statusCode: 200, body: 'Cleanup complete' };
+};
+
+// Run every hour
+export const scheduledHandler = schedule('0 * * * *', handler);
+```
 
 ---
 
@@ -1793,60 +2373,22 @@ Each session is scoped to:
 
 ### 10.1 Rate Limit Tiers
 
-| Tier | Requests/Minute | Requests/Hour | Requests/Day |
-|------|----------------|---------------|--------------|
-| Free | 10 | 100 | 500 |
-| Standard | 60 | 1,000 | 10,000 |
-| Professional | 300 | 5,000 | 50,000 |
-| Enterprise | 1,000 | 20,000 | 200,000 |
+| Tier | Requests/Minute | Requests/Hour | Requests/Day | Price |
+|------|----------------|---------------|--------------|-------|
+| Free | 10 | 100 | 500 | $0 |
+| Standard | 60 | 1,000 | 10,000 | $29/mo |
+| Professional | 300 | 5,000 | 50,000 | $99/mo |
+| Enterprise | 1,000 | 20,000 | 200,000 | Custom |
 
-### 10.2 Rate Limit Implementation
+### 10.2 Rate Limit Headers
 
-```typescript
-async function checkRateLimit(
-  supabase: SupabaseClient,
-  apiKeyId: string,
-  tier: string
-): Promise<boolean> {
-  const limits = {
-    free: { minute: 10, hour: 100, day: 500 },
-    standard: { minute: 60, hour: 1000, day: 10000 },
-    professional: { minute: 300, hour: 5000, day: 50000 },
-    enterprise: { minute: 1000, hour: 20000, day: 200000 }
-  };
+All responses include rate limit headers:
 
-  const tierLimits = limits[tier] ?? limits.free;
-
-  // Check minute window
-  const { data: minuteCount } = await supabase
-    .from("rate_limits")
-    .select("request_count")
-    .eq("api_key_id", apiKeyId)
-    .gte("window_start", new Date(Date.now() - 60000).toISOString())
-    .single();
-
-  if (minuteCount && minuteCount.request_count >= tierLimits.minute) {
-    return false;
-  }
-
-  // Increment counter
-  await supabase.rpc("increment_rate_limit", {
-    p_api_key_id: apiKeyId,
-    p_window_start: new Date(Math.floor(Date.now() / 60000) * 60000).toISOString()
-  });
-
-  return true;
-}
-```
-
-### 10.3 Rate Limit Headers
-
-```typescript
-const rateLimitHeaders = {
-  "X-RateLimit-Limit": tierLimits.minute.toString(),
-  "X-RateLimit-Remaining": (tierLimits.minute - currentCount).toString(),
-  "X-RateLimit-Reset": resetTime.toISOString()
-};
+```http
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 2024-12-24T00:01:00Z
+Retry-After: 60  (only on 429 responses)
 ```
 
 ---
@@ -1855,21 +2397,24 @@ const rateLimitHeaders = {
 
 ### 11.1 Error Categories
 
-| Category | HTTP Status | MCP Error Code | Retry |
-|----------|-------------|----------------|-------|
-| Authentication | 401 | -32001 | No |
-| Rate Limit | 429 | -32002 | Yes (backoff) |
-| Permission | 403 | -32003 | No |
-| Validation | 400 | -32602 | No |
-| Not Found | 404 | -32603 | No |
-| Recharge API | 5xx | -32603 | Yes |
-| Internal | 500 | -32603 | Yes |
+| Category | MCP Error Code | HTTP Status | Retry |
+|----------|---------------|-------------|-------|
+| Parse error | -32700 | 400 | No |
+| Invalid request | -32600 | 400 | No |
+| Method not found | -32601 | 404 | No |
+| Invalid params | -32602 | 400 | No |
+| Internal error | -32603 | 500 | Yes |
+| Unauthorized | -32001 | 401 | No |
+| Rate limited | -32002 | 429 | Yes (with backoff) |
+| Forbidden | -32003 | 403 | No |
+| Store not found | -32004 | 404 | No |
+| Recharge API error | -32005 | 502 | Yes |
 
 ### 11.2 Error Response Format
 
 ```typescript
 interface MCPError {
-  jsonrpc: "2.0";
+  jsonrpc: '2.0';
   id: number | string | null;
   error: {
     code: number;
@@ -1882,58 +2427,9 @@ interface MCPError {
         message: string;
       };
       retryAfter?: number;
+      timestamp: string;
     };
   };
-}
-```
-
-### 11.3 Error Handling in Tools
-
-```typescript
-async function executeToolWithErrorHandling(
-  tool: ToolDefinition,
-  context: ExecutionContext,
-  client: RechargeClient,
-  args: unknown
-): Promise<ToolResult> {
-  try {
-    return await tool.execute(context, client, args);
-  } catch (error) {
-    if (error instanceof RechargeAPIError) {
-      return {
-        content: [{
-          type: "text",
-          text: formatRechargeError(error)
-        }],
-        isError: true,
-        _meta: {
-          errorType: "RechargeAPIError",
-          statusCode: error.statusCode,
-          errorCode: error.errorCode
-        }
-      };
-    }
-
-    if (error instanceof z.ZodError) {
-      return {
-        content: [{
-          type: "text",
-          text: `Validation Error: ${error.issues.map(i => i.message).join(", ")}`
-        }],
-        isError: true,
-        _meta: { errorType: "ValidationError" }
-      };
-    }
-
-    return {
-      content: [{
-        type: "text",
-        text: `Error: ${error.message}`
-      }],
-      isError: true,
-      _meta: { errorType: "UnknownError" }
-    };
-  }
 }
 ```
 
@@ -1953,37 +2449,7 @@ async function executeToolWithErrorHandling(
 | Session creation | New sessions created | > 1000/hour |
 | Recharge API errors | Errors from Recharge | > 10/minute |
 
-### 12.2 Structured Logging
-
-```typescript
-interface LogEntry {
-  timestamp: string;
-  level: "debug" | "info" | "warn" | "error";
-  service: "mcp-gateway";
-  traceId: string;
-  apiKeyId?: string;
-  storeId?: string;
-  userId?: string;
-  method: string;
-  toolName?: string;
-  customerId?: string;
-  durationMs: number;
-  status: "success" | "error" | "rate_limited";
-  error?: {
-    type: string;
-    message: string;
-    code?: number;
-  };
-}
-
-function log(entry: LogEntry): void {
-  console.log(JSON.stringify(entry));
-}
-```
-
-### 12.3 Usage Analytics Dashboard
-
-Queries for analytics:
+### 12.2 Usage Analytics Queries
 
 ```sql
 -- Requests per tool (last 24 hours)
@@ -2013,6 +2479,17 @@ SELECT
 FROM usage_logs
 WHERE created_at > now() - interval '1 hour'
 GROUP BY tool_name;
+
+-- Top users by request count
+SELECT
+  user_id,
+  COUNT(*) as requests,
+  COUNT(*) FILTER (WHERE status = 'error') as errors
+FROM usage_logs
+WHERE created_at > now() - interval '24 hours'
+GROUP BY user_id
+ORDER BY requests DESC
+LIMIT 10;
 ```
 
 ---
@@ -2021,53 +2498,61 @@ GROUP BY tool_name;
 
 ### 13.1 Prerequisites
 
-- Supabase project with Pro plan (for Edge Functions)
-- Domain for MCP endpoint (optional)
-- SSL certificate (handled by Supabase)
+- Netlify account (Pro plan recommended for scheduled functions)
+- Supabase project
+- Domain (optional, for custom URL)
 
 ### 13.2 Environment Variables
 
 ```bash
-# Required for Edge Functions
+# Supabase
 SUPABASE_URL=https://<project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Encryption
 ENCRYPTION_KEY=<32-character-random-string>
 
 # Optional
 DEBUG=false
+NODE_ENV=production
 ```
 
 ### 13.3 Deployment Steps
 
 1. **Create Supabase Project**
    ```bash
+   # Install Supabase CLI
+   npm install -g supabase
+
+   # Initialize and link
    supabase init
    supabase link --project-ref <project-ref>
-   ```
 
-2. **Apply Database Migrations**
-   ```bash
+   # Apply migrations
    supabase db push
    ```
 
-3. **Set Environment Secrets**
+2. **Deploy to Netlify**
    ```bash
-   supabase secrets set ENCRYPTION_KEY=<key>
+   # Install Netlify CLI
+   npm install -g netlify-cli
+
+   # Login and initialize
+   netlify login
+   netlify init
+
+   # Set environment variables
+   netlify env:set SUPABASE_URL "https://<project>.supabase.co"
+   netlify env:set SUPABASE_SERVICE_ROLE_KEY "eyJ..."
+   netlify env:set ENCRYPTION_KEY "$(openssl rand -hex 16)"
+
+   # Deploy
+   netlify deploy --prod
    ```
 
-4. **Deploy Edge Functions**
+3. **Verify Deployment**
    ```bash
-   supabase functions deploy mcp-gateway
-   supabase functions deploy stores
-   supabase functions deploy api-keys
-   ```
-
-5. **Verify Deployment**
-   ```bash
-   curl -X POST https://<project>.supabase.co/functions/v1/mcp-gateway \
-     -H "Authorization: Bearer <api_key>" \
-     -H "Content-Type: application/json" \
-     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+   curl -X POST https://<site>.netlify.app/.netlify/functions/health
    ```
 
 ### 13.4 MCP Client Configuration
@@ -2077,9 +2562,9 @@ DEBUG=false
   "mcpServers": {
     "recharge-storefront-api": {
       "transport": "http",
-      "url": "https://<project>.supabase.co/functions/v1/mcp-gateway",
+      "url": "https://<site>.netlify.app/.netlify/functions/mcp-gateway",
       "headers": {
-        "Authorization": "Bearer rmcp_<api_key>"
+        "Authorization": "Bearer rmcp_<your_api_key>"
       }
     }
   }
@@ -2092,116 +2577,37 @@ DEBUG=false
 
 ### 14.1 Test Categories
 
-#### Unit Tests
-- Tool input schema validation
-- Encryption/decryption functions
-- Rate limit calculations
-- Session cache operations
+- **Unit Tests**: Tool schemas, encryption, validation
+- **Integration Tests**: API key validation, session cache, rate limiting
+- **End-to-End Tests**: Full MCP request/response cycle
+- **Load Tests**: Performance under high concurrency
 
-#### Integration Tests
-- API key validation flow
-- Session token lifecycle
-- Tool execution with mock Recharge API
-- Rate limiting behavior
-
-#### End-to-End Tests
-- Full MCP request/response cycle
-- Multi-tenant isolation
-- Error handling scenarios
-
-### 14.2 Test Environment
-
-```typescript
-// Test fixtures
-const testStore = {
-  id: "test-store-uuid",
-  shopifyDomain: "test-store.myshopify.com",
-  rechargeAdminToken: "test_admin_token"
-};
-
-const testApiKey = {
-  id: "test-key-uuid",
-  apiKey: "rmcp_test_key_12345678901234567890",
-  scopes: ["read", "write"]
-};
-
-// Mock Recharge API
-const mockRechargeServer = createMockServer({
-  "GET /customer": { customer: { id: 123, email: "test@example.com" } },
-  "GET /subscriptions": { subscriptions: [] }
-});
-```
-
-### 14.3 Load Testing
+### 14.2 Test Commands
 
 ```bash
-# Using k6 for load testing
-k6 run --vus 100 --duration 5m load-test.js
-```
+# Run all tests
+npm test
 
-```javascript
-// load-test.js
-import http from 'k6/http';
-import { check, sleep } from 'k6';
+# Run specific test suite
+npm run test:unit
+npm run test:integration
+npm run test:e2e
 
-export default function() {
-  const res = http.post(
-    'https://<project>.supabase.co/functions/v1/mcp-gateway',
-    JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'tools/call',
-      params: {
-        name: 'get_subscriptions',
-        arguments: { customer_email: 'test@example.com' }
-      }
-    }),
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer rmcp_test_key'
-      }
-    }
-  );
-
-  check(res, {
-    'status is 200': (r) => r.status === 200,
-    'response time < 2000ms': (r) => r.timings.duration < 2000
-  });
-
-  sleep(0.1);
-}
+# Load testing with k6
+k6 run tests/load/mcp-gateway.js
 ```
 
 ---
 
 ## 15. Migration from Local Server
 
-### 15.1 Feature Parity Checklist
-
-| Feature | Local | Public | Notes |
-|---------|-------|--------|-------|
-| 46 Tools | Yes | Yes | Same functionality |
-| Session caching | In-memory | Database | Persistent |
-| Multi-customer | Yes | Yes | Enhanced isolation |
-| Unicode support | Yes | Yes | Same validation |
-| Error handling | Yes | Yes | Enhanced for HTTP |
-| Debug logging | Yes | Yes | Structured logs |
-| Rate limiting | No | Yes | New feature |
-| Multi-tenant | No | Yes | New feature |
-
-### 15.2 Breaking Changes
+### 15.1 Breaking Changes
 
 1. **Authentication**: Requires API key instead of environment variables
-2. **Transport**: HTTP instead of stdio
-3. **Removed Parameters**: `store_url`, `admin_token`, `session_token` per-tool parameters removed (handled by API key)
+2. **Transport**: HTTP POST instead of stdio
+3. **Removed Parameters**: `store_url`, `admin_token`, `session_token` removed from tool schemas
 
-### 15.3 Migration Steps for Users
-
-1. **Create Account**: Register at the MCP portal
-2. **Add Store**: Configure Shopify domain and Recharge admin token
-3. **Generate API Key**: Create API key with appropriate scopes
-4. **Update MCP Config**: Change from local to HTTP transport
+### 15.2 Migration Steps for Users
 
 **Before (Local):**
 ```json
@@ -2225,7 +2631,7 @@ export default function() {
   "mcpServers": {
     "recharge": {
       "transport": "http",
-      "url": "https://mcp.recharge-api.com/v1",
+      "url": "https://mcp.example.com/.netlify/functions/mcp-gateway",
       "headers": {
         "Authorization": "Bearer rmcp_..."
       }
@@ -2238,54 +2644,38 @@ export default function() {
 
 ## Appendices
 
-### A. Complete Tool Reference
+### A. Environment Variables Reference
 
-[See Section 7 for full tool definitions]
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key |
+| `ENCRYPTION_KEY` | Yes | 32-character encryption key |
+| `DEBUG` | No | Enable debug logging |
+| `NODE_ENV` | No | Environment (production/development) |
 
-### B. API Error Codes
+### B. API Key Scopes Reference
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| -32700 | 400 | Parse error - Invalid JSON |
-| -32600 | 400 | Invalid Request |
-| -32601 | 404 | Method not found |
-| -32602 | 400 | Invalid params |
-| -32603 | 500 | Internal error |
-| -32001 | 401 | Unauthorized |
-| -32002 | 429 | Rate limited |
-| -32003 | 403 | Forbidden |
+| Scope | Permissions |
+|-------|-------------|
+| `read` | All GET operations |
+| `write` | All POST/PUT/DELETE operations + read |
+| `admin` | Session creation, cache management + write |
 
-### C. Database ER Diagram
+### C. Recharge API Version
 
-```
-+-------------+       +-------------+       +----------------+
-|    users    |------>|   stores    |------>| session_tokens |
-+-------------+       +-------------+       +----------------+
-      |                     |
-      |                     v
-      |               +-------------+
-      +-------------->|  api_keys   |
-                      +-------------+
-                            |
-                            v
-                      +-------------+
-                      | usage_logs  |
-                      +-------------+
-                            |
-                            v
-                      +-------------+
-                      | rate_limits |
-                      +-------------+
-```
+This server uses **Recharge API Version 2021-11**.
 
-### D. Security Considerations
+### D. Security Checklist
 
-1. **Token Encryption**: All Recharge tokens encrypted at rest with AES-256
-2. **API Key Hashing**: API keys stored as SHA-256 hashes
-3. **RLS Policies**: All tables protected with Row Level Security
-4. **HTTPS Only**: All communication over TLS 1.3
-5. **Rate Limiting**: Protection against abuse
-6. **Audit Logging**: All operations logged for compliance
+- [ ] All Recharge tokens encrypted at rest (AES-256-GCM)
+- [ ] API keys hashed with SHA-256
+- [ ] RLS enabled on all Supabase tables
+- [ ] HTTPS only (enforced by Netlify)
+- [ ] Rate limiting per API key
+- [ ] Usage logging for audit trail
+- [ ] Input validation with Zod schemas
+- [ ] Security headers on all responses
 
 ---
 
@@ -2293,8 +2683,9 @@ export default function() {
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0.0 | 2024-12-24 | Initial PRD and Technical Specification |
+| 1.0.0 | 2024-12-24 | Initial PRD with Supabase Edge Functions |
+| 1.1.0 | 2024-12-24 | Updated to Netlify Functions + Supabase Database |
 
 ---
 
-*This document serves as the complete specification for building the Public Recharge Storefront API MCP Server. Implementation should follow this specification closely to ensure feature parity with the local server while adding multi-tenant, security, and scalability capabilities.*
+*This document provides the complete specification for building the Public Recharge Storefront API MCP Server using Netlify Functions for compute and Supabase for database. All 46 tools from the local server are preserved with full feature parity.*
