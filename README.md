@@ -1473,3 +1473,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ---
 
 *Built with care for the Recharge and MCP communities*
+
+**Last Updated:** December 24, 2024

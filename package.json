@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Recharge Storefront API MCP Server",
+  "description": "Complete Recharge Storefront API MCP Server for AI assistants",
   "main": "index.js",
   "bin": {
     "recharge-storefront-api-mcp": "index.js"
