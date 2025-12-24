@@ -384,10 +384,10 @@ Edit your Claude Desktop configuration file:
 
 ```json
 {
-  "mcp.servers": {
+  "mcpServers": {
     "recharge-storefront-api": {
       "command": "node",
-      "args": ["src/server.js"],
+      "args": ["./src/server.js"],
       "cwd": "path/to/recharge-storefront-api-mcp",
       "env": {
         "RECHARGE_STOREFRONT_DOMAIN": "your-shop.myshopify.com",
@@ -409,7 +409,7 @@ import('./src/server.js').catch(console.error);
 Then use this configuration:
 ```json
 {
-  "mcp.servers": {
+  "mcpServers": {
     "recharge-storefront-api": {
       "command": "node",
       "args": ["run-server.js"],
@@ -427,7 +427,7 @@ Then use this configuration:
 
 ```json
 {
-  "mcp.servers": {
+  "mcpServers": {
     "recharge-storefront-api": {
       "command": "node",
       "args": ["src/server.js"],
