@@ -1,3 +1,7 @@
+/**
+ * Tools index - aggregates all MCP tools
+ * Last updated: 2024-12-24
+ */
 import { customerTools } from './customer-tools.js';
 import { subscriptionTools } from './subscription-tools.js';
 import { addressTools } from './address-tools.js';

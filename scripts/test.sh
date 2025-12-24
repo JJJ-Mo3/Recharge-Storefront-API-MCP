@@ -2,6 +2,7 @@
 
 # Recharge Storefront API MCP Server Test Script
 # This script runs comprehensive tests
+# Last updated: 2024-12-24
 
 set -e
 

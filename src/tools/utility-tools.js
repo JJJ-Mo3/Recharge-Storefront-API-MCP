@@ -1,3 +1,7 @@
+/**
+ * Utility tools for cache management and diagnostics
+ * Last updated: 2024-12-24
+ */
 import { z } from 'zod';
 
 const baseSchema = z.object({

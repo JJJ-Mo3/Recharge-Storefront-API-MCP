@@ -2,9 +2,10 @@
 
 /**
  * Recharge Storefront API MCP Server
- * 
- * A comprehensive Model Context Protocol server that provides complete access 
+ *
+ * A comprehensive Model Context Protocol server that provides complete access
  * to the Recharge Storefront API for subscription management.
+ * Last updated: 2024-12-24
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';

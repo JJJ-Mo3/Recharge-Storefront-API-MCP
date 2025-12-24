@@ -2,6 +2,7 @@
 
 # Recharge Storefront API MCP Server Setup Script
 # This script sets up the development environment
+# Last updated: 2024-12-24
 
 set -e
 

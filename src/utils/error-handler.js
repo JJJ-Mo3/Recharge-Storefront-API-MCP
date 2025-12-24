@@ -1,6 +1,6 @@
 /**
  * Custom error class for Recharge API errors
- * 
+ * Last updated: 2024-12-24
  */
 export class RechargeAPIError extends Error {
   /**

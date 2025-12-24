@@ -5,6 +5,7 @@ import { SessionCache } from './utils/session-cache.js';
 /**
  * Recharge Storefront API Client
  * Provides complete access to all Recharge Storefront API endpoints
+ * Last updated: 2024-12-24
  */
 export class RechargeClient {
   constructor({ storeUrl, sessionToken = null, adminToken = null }) {

@@ -3,6 +3,7 @@
 /**
  * Test script to validate API key and store URL handling logic
  * This script tests the token and store URL precedence system without making actual API calls
+ * Last updated: 2024-12-24
  */
 
 (async () => {

@@ -1,3 +1,7 @@
+/**
+ * One-time product management tools
+ * Last updated: 2024-12-24
+ */
 import { z } from 'zod';
 
 const baseSchema = z.object({
