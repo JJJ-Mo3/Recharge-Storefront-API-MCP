@@ -14,23 +14,25 @@
     console.log('📋 Categories covered:');
 
     const categories = {};
+    const hasKeyword = (parts, keyword) => parts.some(p => p === keyword || p === keyword + 's' || p === keyword + 'es');
+
     tools.forEach(t => {
       const parts = t.name.split('_');
       let category;
-      
-      if (parts.includes('customer')) category = 'customer';
-      else if (parts.includes('subscription')) category = 'subscriptions';
-      else if (parts.includes('address')) category = 'addresses';
-      else if (parts.includes('payment')) category = 'payments';
-      else if (parts.includes('product')) category = 'products';
-      else if (parts.includes('order')) category = 'orders';
-      else if (parts.includes('charge')) category = 'charges';
-      else if (parts.includes('onetime')) category = 'onetimes';
-      else if (parts.includes('bundle')) category = 'bundles';
-      else if (parts.includes('discount')) category = 'discounts';
+
+      if (hasKeyword(parts, 'customer')) category = 'customer';
+      else if (hasKeyword(parts, 'subscription')) category = 'subscriptions';
+      else if (hasKeyword(parts, 'address')) category = 'addresses';
+      else if (hasKeyword(parts, 'payment')) category = 'payments';
+      else if (hasKeyword(parts, 'product')) category = 'products';
+      else if (hasKeyword(parts, 'order')) category = 'orders';
+      else if (hasKeyword(parts, 'charge')) category = 'charges';
+      else if (hasKeyword(parts, 'onetime')) category = 'onetimes';
+      else if (hasKeyword(parts, 'bundle')) category = 'bundles';
+      else if (hasKeyword(parts, 'discount')) category = 'discounts';
       else if (parts.includes('session') || parts.includes('cache') || parts.includes('purge')) category = 'utility';
       else category = 'general';
-      
+
       categories[category] = (categories[category] || 0) + 1;
     });
 

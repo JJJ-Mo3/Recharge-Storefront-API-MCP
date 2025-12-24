@@ -3,135 +3,7 @@
  * Last updated: 2024-12-24
  */
 import { z } from 'zod';
-
-/**
- * Normalize Unicode text for consistent storage and display
- * @param {string} text - Text to normalize
- * @returns {string} Normalized text
- */
-function normalizeUnicodeText(text) {
-  if (!text || typeof text !== 'string') {
-    return text;
-  }
-  
-  // Normalize to NFC (Canonical Decomposition, followed by Canonical Composition)
-  // This ensures consistent Unicode representation
-  let normalized = text.normalize('NFC');
-  
-  // Trim whitespace
-  normalized = normalized.trim();
-  
-  // Remove control characters except common whitespace
-  normalized = normalized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
-  
-  // Collapse multiple consecutive whitespace into single space
-  normalized = normalized.replace(/\s+/g, ' ');
-  
-  return normalized;
-}
-
-/**
- * Validate Unicode text for address fields
- * @param {string} text - Text to validate
- * @param {string} fieldName - Name of the field for error messages
- * @param {number} maxLength - Maximum allowed length
- * @returns {string} Validated and normalized text
- * @throws {Error} If text contains invalid characters
- */
-function validateUnicodeAddressText(text, fieldName, maxLength = 255) {
-  if (!text || typeof text !== 'string') {
-    return text;
-  }
-  
-  const normalized = normalizeUnicodeText(text);
-  
-  // Check for empty after normalization
-  if (normalized.length === 0) {
-    throw new Error(`${fieldName} cannot be empty after normalization`);
-  }
-  
-  // Check length limits
-  if (normalized.length > maxLength) {
-    throw new Error(`${fieldName} is too long (${normalized.length} characters). Maximum ${maxLength} characters allowed.`);
-  }
-  
-  // Validate character set - allow letters, marks, numbers, basic punctuation, and spaces
-  // This covers international addresses while excluding emojis, mathematical symbols, and other special characters
-  // that may not be supported by shipping providers and payment processors
-  if (!/^[\p{L}\p{M}\p{N}\p{Pd}\p{Po}\p{Zs}]+$/u.test(normalized)) {
-    throw new Error(`${fieldName} contains unsupported characters. Only letters, numbers, basic punctuation (hyphens, periods, apostrophes), and spaces are allowed. Emojis and special symbols are not supported by shipping providers.`);
-  }
-  
-  return normalized;
-}
-
-/**
- * Validate postal/ZIP code with international support
- * @param {string} zip - Postal code to validate
- * @param {string} country - Country code for context
- * @returns {string} Normalized postal code
- * @throws {Error} If postal code is invalid
- */
-function validatePostalCode(zip, country = '') {
-  if (!zip || typeof zip !== 'string') {
-    return zip;
-  }
-  
-  const normalized = normalizeUnicodeText(zip);
-  
-  // Basic international postal code validation
-  // Allows letters, numbers, spaces, hyphens
-  if (!/^[\p{L}\p{N}\s\-]{2,12}$/u.test(normalized)) {
-    throw new Error(`Invalid postal code format: ${zip}. Use alphanumeric characters, spaces, and hyphens only (2-12 characters).`);
-  }
-  
-  // Country-specific validation hints
-  const countryLower = country.toLowerCase();
-  if (countryLower === 'us' || countryLower === 'usa' || countryLower === 'united states') {
-    if (!/^\d{5}(-\d{4})?$/.test(normalized)) {
-      throw new Error(`US ZIP code format should be 12345 or 12345-6789, got: ${zip}`);
-    }
-  } else if (countryLower === 'ca' || countryLower === 'canada') {
-    if (!/^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/.test(normalized)) {
-      throw new Error(`Canadian postal code format should be A1A 1A1 or A1A1A1, got: ${zip}`);
-    }
-  } else if (countryLower === 'uk' || countryLower === 'gb' || countryLower === 'united kingdom') {
-    if (!/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$/.test(normalized)) {
-      throw new Error(`UK postal code format should be like SW1A 1AA or M1 1AA, got: ${zip}`);
-    }
-  }
-  
-  return normalized;
-}
-
-/**
- * Normalize and validate phone number for international use
- * @param {string} phone - Phone number to validate
- * @returns {string} Normalized phone number
- * @throws {Error} If phone number is invalid
- */
-function validateInternationalPhone(phone) {
-  if (!phone || typeof phone !== 'string') {
-    return phone;
-  }
-  
-  // Normalize whitespace
-  let normalized = phone.trim().replace(/\s+/g, ' ');
-  
-  // International phone number validation
-  // Allows: +, digits, spaces, hyphens, parentheses, dots
-  if (!/^[\+]?[\d\s\-\(\)\.]{7,20}$/.test(normalized)) {
-    throw new Error('Phone number format is invalid. Use international format (e.g., +1-555-123-4567)');
-  }
-  
-  // Check for reasonable digit count (7-15 digits as per E.164)
-  const digitCount = (normalized.match(/\d/g) || []).length;
-  if (digitCount < 7 || digitCount > 15) {
-    throw new Error(`Phone number should have 7-15 digits, found ${digitCount}`);
-  }
-  
-  return normalized;
-}
+import { validateUnicodeAddressText, validatePostalCode, validatePhoneNumber } from '../utils/unicode-helpers.js';
 
 const baseSchema = z.object({
   customer_id: z.string().optional().describe('Customer ID for automatic session creation (optional, used when no session_token provided)'),
@@ -339,7 +211,7 @@ export const addressTools = [
         }
         
         if (addressData.phone !== undefined && addressData.phone !== '') {
-          addressData.phone = validateInternationalPhone(addressData.phone);
+          addressData.phone = validatePhoneNumber(addressData.phone);
         }
         
       } catch (validationError) {
@@ -419,7 +291,7 @@ export const addressTools = [
         }
         
         if (addressData.phone !== undefined && addressData.phone !== '') {
-          addressData.phone = validateInternationalPhone(addressData.phone);
+          addressData.phone = validatePhoneNumber(addressData.phone);
         }
         
       } catch (validationError) {

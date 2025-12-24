@@ -21,7 +21,7 @@
     "validate": "npm run lint && node --check index.js && node --check src/server.js && node --check src/recharge-client.js && node --check src/utils/error-handler.js && node --check src/utils/session-cache.js && node --check src/tools/index.js && echo \"✅ Syntax validation passed\" && npm run coverage",
     "debug": "DEBUG=true node src/server.js",
     "clean": "rm -rf node_modules package-lock.json && npm install",
-    "health": "node -e \"import('./package.json', { assert: { type: 'json' } }).then(pkg => { console.log('✅ Server health check passed'); console.log('📊 Node.js version:', process.version); console.log('🖥️  Platform:', process.platform); console.log('📦 Dependencies:', Object.keys(pkg.default.dependencies).length); }).catch(e => { console.error('Health check failed:', e.message); process.exit(1); });\" --input-type=module",
+    "health": "node -e \"const fs = require('fs'); try { const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8')); console.log('Server health check passed'); console.log('Node.js version:', process.version); console.log('Platform:', process.platform); console.log('Dependencies:', Object.keys(pkg.dependencies).length); } catch(e) { console.error('Health check failed:', e.message); process.exit(1); }\"",
     "version": "node -p \"require('./package.json').version\"",
     "mcp:test": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}' | timeout 10s npm start",
     "test:api-keys": "node scripts/test-api-key-logic.js"
@@ -42,10 +42,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
-    "zod": "latest",
-    "axios": "latest",
-    "dotenv": "latest"
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "zod": "^3.24.0"
   },
   "engines": {
     "node": ">=18.0.0"

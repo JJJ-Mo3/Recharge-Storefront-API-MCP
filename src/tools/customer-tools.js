@@ -3,6 +3,7 @@
  * Last updated: 2024-12-24
  */
 import { z } from 'zod';
+import { normalizeUnicodeText, validateUnicodeText, validatePhoneNumber } from '../utils/unicode-helpers.js';
 
 const baseSchema = z.object({
   session_token: z.string().optional().describe('Recharge session token (optional, takes precedence over environment variable if provided)'),
@@ -54,102 +55,6 @@ const updateCustomerSchema = z.object({
   message: "At least one field to update must be provided"
 });
 
-/**
- * Normalize Unicode text for consistent storage and display
- * @param {string} text - Text to normalize
- * @returns {string} Normalized text
- */
-function normalizeUnicodeText(text) {
-  if (!text || typeof text !== 'string') {
-    return text;
-  }
-  
-  // Normalize to NFC (Canonical Decomposition, followed by Canonical Composition)
-  // This ensures consistent Unicode representation
-  let normalized = text.normalize('NFC');
-  
-  // Trim whitespace
-  normalized = normalized.trim();
-  
-  // Remove control characters except common whitespace
-  normalized = normalized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
-  
-  // Collapse multiple consecutive whitespace into single space
-  normalized = normalized.replace(/\s+/g, ' ');
-  
-  return normalized;
-}
-
-/**
- * Validate Unicode text for customer names
- * @param {string} text - Text to validate
- * @param {string} fieldName - Name of the field for error messages
- * @returns {string} Validated and normalized text
- * @throws {Error} If text contains invalid characters
- */
-function validateUnicodeText(text, fieldName) {
-  if (!text || typeof text !== 'string') {
-    return text;
-  }
-  
-  const normalized = normalizeUnicodeText(text);
-  
-  // Check for empty after normalization
-  if (normalized.length === 0) {
-    throw new Error(`${fieldName} cannot be empty after normalization`);
-  }
-  
-  // Check length limits
-  if (normalized.length > 255) {
-    throw new Error(`${fieldName} is too long (${normalized.length} characters). Maximum 255 characters allowed.`);
-  }
-  
-  // Validate character set - allow letters, marks, numbers, punctuation, symbols, and spaces
-  // This covers most international names while excluding problematic characters
-  if (!/^[\p{L}\p{M}\p{N}\p{P}\p{S}\p{Zs}]+$/u.test(normalized)) {
-    throw new Error(`${fieldName} contains invalid characters. Only letters, numbers, punctuation, and spaces are allowed.`);
-  }
-  
-  // Additional validation for names - should start and end with letter or number
-  if (fieldName.includes('name') && !/^[\p{L}\p{N}].*[\p{L}\p{N}]$/u.test(normalized)) {
-    // Allow single character names
-    if (normalized.length === 1 && /^[\p{L}\p{N}]$/u.test(normalized)) {
-      return normalized;
-    }
-    throw new Error(`${fieldName} should start and end with a letter or number`);
-  }
-  
-  return normalized;
-}
-
-/**
- * Normalize and validate phone number
- * @param {string} phone - Phone number to validate
- * @returns {string} Normalized phone number
- * @throws {Error} If phone number is invalid
- */
-function validatePhoneNumber(phone) {
-  if (!phone || typeof phone !== 'string') {
-    return phone;
-  }
-  
-  // Normalize whitespace
-  let normalized = phone.trim().replace(/\s+/g, ' ');
-  
-  // Basic international phone number validation
-  // Allows: +, digits, spaces, hyphens, parentheses, dots
-  if (!/^[\+]?[\d\s\-\(\)\.]{7,20}$/.test(normalized)) {
-    throw new Error('Phone number format is invalid. Use international format (e.g., +1-555-123-4567)');
-  }
-  
-  // Check for reasonable digit count (7-15 digits as per E.164)
-  const digitCount = (normalized.match(/\d/g) || []).length;
-  if (digitCount < 7 || digitCount > 15) {
-    throw new Error(`Phone number should have 7-15 digits, found ${digitCount}`);
-  }
-  
-  return normalized;
-}
 const customerByEmailSchema = z.object({
   admin_token: z.string().optional().describe('Recharge admin token (required for customer lookup unless set in environment)'),
   store_url: z.string().optional().describe('Store URL (optional, takes precedence over environment variable if provided)'),
