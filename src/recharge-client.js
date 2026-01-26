@@ -481,6 +481,22 @@ export class RechargeClient {
     return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, sessionToken, 0);
   }
 
+  async get(endpoint, customerId = null, customerEmail = null, sessionToken = null, params = null) {
+    return await this.makeRequest('GET', endpoint, null, params, customerId, customerEmail, sessionToken);
+  }
+
+  async post(endpoint, data = null, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('POST', endpoint, data, null, customerId, customerEmail, sessionToken);
+  }
+
+  async put(endpoint, data = null, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('PUT', endpoint, data, null, customerId, customerEmail, sessionToken);
+  }
+
+  async delete(endpoint, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('DELETE', endpoint, null, null, customerId, customerEmail, sessionToken);
+  }
+
   /**
    * Make authenticated request with retry logic for session expiry
    */
