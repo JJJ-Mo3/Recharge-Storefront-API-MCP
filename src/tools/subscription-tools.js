@@ -778,7 +778,7 @@ export const subscriptionTools = [
     },
   },
   {
-    name: 'set_subscription_next_charge_date',
+    name: 'set_subscription_next_charge',
     description: 'Set the next charge date for a subscription',
     inputSchema: setNextChargeDateSchema,
     execute: async (client, args) => {
