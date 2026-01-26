@@ -82,12 +82,46 @@ export const utilityTools = [
       if (stats.totalSessions > 10) {
         message += `\n\nTip: You have many cached sessions. Consider using 'purge_session_cache' with 'older_than_minutes' to clean up old sessions.`;
       }
-      
+
       return {
         content: [
           {
             type: 'text',
             text: message,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'get_shipping_countries',
+    description: 'Get list of countries the store ships to',
+    inputSchema: baseSchema,
+    execute: async (client, args) => {
+      const result = await client.get('/store/shipping_countries', args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Shipping Countries:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'get_store_settings',
+    description: 'Get store configuration and settings',
+    inputSchema: baseSchema,
+    execute: async (client, args) => {
+      const result = await client.get('/store', args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Store Settings:\n${JSON.stringify(result, null, 2)}`,
           },
         ],
       };

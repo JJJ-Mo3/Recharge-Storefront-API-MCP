@@ -125,6 +125,36 @@ const updateAddressSchema = z.object({
   message: "At least one field to update must be provided"
 });
 
+const addressDiscountSchema = z.object({
+  customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+  customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+  session_token: z.string().optional().describe('Recharge session token'),
+  admin_token: z.string().optional().describe('Recharge admin token'),
+  store_url: z.string().optional().describe('Store URL'),
+  address_id: z.string().describe('The address ID'),
+  discount_code: z.string().describe('The discount code to apply'),
+});
+
+const mergeAddressesSchema = z.object({
+  customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+  customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+  session_token: z.string().optional().describe('Recharge session token'),
+  admin_token: z.string().optional().describe('Recharge admin token'),
+  store_url: z.string().optional().describe('Store URL'),
+  address_id: z.string().describe('The destination address ID (subscriptions will be moved here)'),
+  source_address_id: z.string().describe('The source address ID (will be deleted after merge)'),
+});
+
+const skipAddressChargeSchema = z.object({
+  customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+  customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+  session_token: z.string().optional().describe('Recharge session token'),
+  admin_token: z.string().optional().describe('Recharge admin token'),
+  store_url: z.string().optional().describe('Store URL'),
+  address_id: z.string().describe('The address ID'),
+  charge_id: z.string().describe('The charge ID to skip'),
+});
+
 export const addressTools = [
   {
     name: 'get_addresses',
@@ -325,12 +355,84 @@ export const addressTools = [
     execute: async (client, args) => {
       const { address_id } = args;
       const result = await client.deleteAddress(address_id, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
             type: 'text',
             text: `Deleted Address:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'apply_discount_to_address',
+    description: 'Apply a discount code to all subscriptions at an address',
+    inputSchema: addressDiscountSchema,
+    execute: async (client, args) => {
+      const { address_id, discount_code } = args;
+      const result = await client.post(`/addresses/${address_id}/apply_discount`, { discount_code }, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Discount applied to address:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'remove_discount_from_address',
+    description: 'Remove all discounts from subscriptions at an address',
+    inputSchema: addressSchema,
+    execute: async (client, args) => {
+      const { address_id } = args;
+      const result = await client.post(`/addresses/${address_id}/remove_discount`, {}, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Discounts removed from address:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'merge_addresses',
+    description: 'Merge two addresses by moving all subscriptions from source to destination address',
+    inputSchema: mergeAddressesSchema,
+    execute: async (client, args) => {
+      const { address_id, source_address_id } = args;
+      const result = await client.post(`/addresses/${address_id}/merge`, { source_address_id }, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Addresses merged:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'skip_address_charge',
+    description: 'Skip a future charge for all subscriptions at an address',
+    inputSchema: skipAddressChargeSchema,
+    execute: async (client, args) => {
+      const { address_id, charge_id } = args;
+      const result = await client.post(`/addresses/${address_id}/charges/${charge_id}/skip`, {}, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Charge skipped for address:\n${JSON.stringify(result, null, 2)}`,
           },
         ],
       };

@@ -182,6 +182,16 @@ const createSubscriptionSchema = z.object({
   })).optional().describe('Product properties'),
 });
 
+const changeAddressSchema = z.object({
+  customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+  customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+  session_token: z.string().optional().describe('Recharge session token'),
+  admin_token: z.string().optional().describe('Recharge admin token'),
+  store_url: z.string().optional().describe('Store URL'),
+  subscription_id: z.string().describe('The subscription ID'),
+  address_id: z.string().describe('The new address ID to move the subscription to'),
+});
+
 export const subscriptionTools = [
   {
     name: 'get_subscriptions',
@@ -774,12 +784,30 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       const { subscription_id, date } = args;
       const updatedSubscription = await client.setNextChargeDate(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
             type: 'text',
             text: `Updated Subscription Next Charge Date:\n${JSON.stringify(updatedSubscription, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'change_subscription_address',
+    description: 'Move a subscription to a different address',
+    inputSchema: changeAddressSchema,
+    execute: async (client, args) => {
+      const { subscription_id, address_id } = args;
+      const result = await client.post(`/subscriptions/${subscription_id}/change_address`, { address_id }, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Subscription address changed:\n${JSON.stringify(result, null, 2)}`,
           },
         ],
       };
