@@ -35,7 +35,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 
 ### Key Benefits
 
-- **Complete API Coverage**: All 46 Recharge Storefront API endpoints
+- **Complete API Coverage**: All 59 Recharge Storefront API endpoints
 - **Intelligent Authentication**: Automatic session management with multi-customer support
 - **Production Ready**: Error handling, logging, and monitoring
 - **Developer Friendly**: Comprehensive documentation, examples, and debugging tools
@@ -49,16 +49,16 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 | Category | Tools | Description |
 |----------|-------|-------------|
 | **Customer Management** | 4 tools | Profile management, lookup, and session creation |
-| **Subscription Lifecycle** | 10 tools | Create, update, cancel, skip, swap, and activate subscriptions |
-| **Address Management** | 5 tools | Full CRUD operations for shipping and billing addresses |
+| **Subscription Lifecycle** | 11 tools | Create, update, cancel, skip, swap, activate, and change address |
+| **Address Management** | 9 tools | Full CRUD, discounts, merge, and charge skipping |
 | **Payment Methods** | 3 tools | View and update payment information |
 | **Product Catalog** | 2 tools | Browse subscription products and variants |
 | **Order Management** | 2 tools | View order history and tracking |
-| **Charge Management** | 2 tools | Billing and payment tracking |
+| **Charge Management** | 8 tools | Skip, process, reschedule, and manage discounts |
 | **One-time Products** | 5 tools | Add products to upcoming deliveries |
 | **Bundle Management** | 7 tools | Product bundle and selection management |
 | **Discount System** | 4 tools | Apply and manage discount codes |
-| **Utilities** | 2 tools | Session cache management and diagnostics |
+| **Utilities** | 4 tools | Session cache, store settings, and shipping countries |
 
 ### Advanced Features
 
@@ -693,7 +693,7 @@ DEBUG=true npm start
 | `get_customer_by_email` | Find customer by email (returns ID) | `email` |
 | `create_customer_session_by_id` | Create session manually | `customer_id`, `return_url` |
 
-### Subscription Management (10 tools)
+### Subscription Management (11 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -707,8 +707,9 @@ DEBUG=true npm start
 | `cancel_subscription` | Cancel subscription | `subscription_id`, `reason` |
 | `activate_subscription` | Reactivate subscription | `subscription_id` |
 | `set_subscription_next_charge_date` | Set next charge date | `subscription_id`, `date` |
+| `change_subscription_address` | Move subscription to different address | `subscription_id`, `address_id` |
 
-### Address Management (5 tools)
+### Address Management (9 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -717,6 +718,10 @@ DEBUG=true npm start
 | `create_address` | Add new address | `address1`, `city`, `province`, `zip`, `country` |
 | `update_address` | Modify address | `address_id`, address fields |
 | `delete_address` | Remove address | `address_id` |
+| `apply_discount_to_address` | Apply discount to all subscriptions at address | `address_id`, `discount_code` |
+| `remove_discount_from_address` | Remove discounts from address subscriptions | `address_id` |
+| `merge_addresses` | Merge two addresses (move subscriptions) | `address_id`, `source_address_id` |
+| `skip_address_charge` | Skip a charge for all address subscriptions | `address_id`, `charge_id` |
 
 ### Payment Methods (3 tools)
 
@@ -733,14 +738,25 @@ DEBUG=true npm start
 | `get_products` | Browse available products | `limit`, `handle` |
 | `get_product` | Get product details | `product_id` |
 
-### Order & Charge History (4 tools)
+### Order History (2 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `get_orders` | List customer orders | `status`, `limit`, `page` |
 | `get_order` | Get order details | `order_id` |
+
+### Charge Management (8 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
 | `get_charges` | List charges | `status`, `limit`, `page` |
 | `get_charge` | Get charge details | `charge_id` |
+| `apply_discount_to_charge` | Apply discount code to charge | `charge_id`, `discount_code` |
+| `remove_discount_from_charge` | Remove discounts from charge | `charge_id` |
+| `skip_charge` | Skip a scheduled charge | `charge_id` |
+| `unskip_charge` | Unskip a previously skipped charge | `charge_id` |
+| `process_charge` | Process charge immediately | `charge_id` |
+| `reschedule_charge` | Reschedule charge to new date | `charge_id`, `scheduled_at` |
 
 ### One-time Products (5 tools)
 
@@ -773,12 +789,14 @@ DEBUG=true npm start
 | `apply_discount` | Apply discount code | `discount_code` |
 | `remove_discount` | Remove discount | `discount_id` |
 
-### Utility Tools (2 tools)
+### Utility Tools (4 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `purge_session_cache` | Clear cached session tokens | `all`, `older_than_minutes`, `reason` |
 | `get_session_cache_stats` | View cache statistics | - |
+| `get_shipping_countries` | Get list of countries store ships to | - |
+| `get_store_settings` | Get store configuration and settings | - |
 
 ## Usage Examples
 
@@ -1456,7 +1474,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Full Tests**: Run `npm run test:full` for comprehensive testing
 
 ### Project Statistics
-- **46 Tools**: Complete Recharge Storefront API coverage
+- **59 Tools**: Complete Recharge Storefront API coverage
 - **11 Categories**: Comprehensive subscription management
 - **Production Ready**: Error handling, logging, and monitoring
 - **Secure**: Built-in customer data protection with session token isolation
@@ -1468,4 +1486,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 *Built with care for the Recharge and MCP communities*
 
-**Last Updated:** December 24, 2024
+**Last Updated:** January 26, 2026
