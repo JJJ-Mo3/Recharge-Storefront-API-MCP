@@ -35,7 +35,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 
 ### Key Benefits
 
-- **Complete API Coverage**: All 86 Recharge Storefront API endpoints
+- **Complete API Coverage**: All 88 Recharge Storefront API endpoints
 - **Intelligent Authentication**: Automatic session management with multi-customer support
 - **Production Ready**: Error handling, logging, and monitoring
 - **Developer Friendly**: Comprehensive documentation, examples, and debugging tools
@@ -63,7 +63,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 | **Gifts** | 2 tools | Gift purchases and redemption |
 | **Metafields** | 3 tools | Create, update, delete resource metafields |
 | **Authentication** | 8 tools | Shopify login, passwordless auth, customer portal |
-| **Utilities** | 2 tools | Session cache management |
+| **Utilities** | 4 tools | Session cache, store settings, and shipping countries |
 
 ### Advanced Features
 
@@ -815,12 +815,14 @@ DEBUG=true npm start
 | `validate_passwordless_code_app_proxy` | Validate via App Proxy | `email`, `session_token`, `code` |
 | `login_customer_portal` | Login from Customer Portal | - |
 
-### Utility Tools (2 tools)
+### Utility Tools (4 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `purge_session_cache` | Clear cached session tokens | `all`, `older_than_minutes`, `reason` |
 | `get_session_cache_stats` | View cache statistics | - |
+| `get_shipping_countries` | Get list of countries store ships to | - |
+| `get_store_settings` | Get store configuration and settings | - |
 
 ### Collections (3 tools)
 
