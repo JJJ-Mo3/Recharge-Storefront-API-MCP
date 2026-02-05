@@ -66,12 +66,12 @@ const updateSubscriptionSchema = z.object({
   // Enhanced frequency validation with strict business rules
   if (data.order_interval_frequency !== undefined && data.order_interval_unit !== undefined) {
     const { order_interval_frequency: freq, order_interval_unit: unit } = data;
-    
+
     // Validate frequency is a positive integer
     if (!Number.isInteger(freq) || freq < 1) {
       return false;
     }
-    
+
     // Unit-specific frequency validation with business rules
     switch (unit) {
       case 'day':
@@ -204,9 +204,9 @@ export const subscriptionTools = [
       delete params.session_token;
       delete params.admin_token;
       delete params.store_url;
-      
+
       const subscriptions = await client.getSubscriptions(params, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -234,7 +234,7 @@ export const subscriptionTools = [
           isError: true,
         };
       }
-      
+
       // Validate quantity is reasonable
       if (args.quantity <= 0 || args.quantity > 1000) {
         return {
@@ -247,12 +247,12 @@ export const subscriptionTools = [
           isError: true,
         };
       }
-      
+
       // Validate next charge date is in the future
       const nextChargeDate = new Date(args.next_charge_scheduled_at);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (nextChargeDate < today) {
         return {
           content: [
@@ -264,7 +264,7 @@ export const subscriptionTools = [
           isError: true,
         };
       }
-      
+
       // Validate frequency combination
       const totalDays = calculateTotalDays(args.order_interval_frequency, args.order_interval_unit);
       if (totalDays > 365) {
@@ -278,33 +278,33 @@ export const subscriptionTools = [
           isError: true,
         };
       }
-      
+
       const subscriptionData = { ...args };
       delete subscriptionData.customer_id;
       delete subscriptionData.customer_email;
       delete subscriptionData.session_token;
       delete subscriptionData.admin_token;
       delete subscriptionData.store_url;
-      
+
       // Pre-validate variant existence before attempting subscription creation
       try {
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Pre-validating variant ${args.variant_id} exists`);
         }
-        
+
         // Get products to validate variant exists
         const products = await client.getProducts({ limit: 250 }, args.customer_id, args.customer_email, args.session_token);
-        
+
         if (!products || !products.products || !Array.isArray(products.products)) {
           throw new Error('Unable to validate variant - product catalog unavailable');
         }
-        
+
         // Check if variant exists in any product
         let variantFound = false;
         let productTitle = '';
         let variantTitle = '';
         let isSubscriptionEnabled = false;
-        
+
         for (const product of products.products) {
           if (product.variants && Array.isArray(product.variants)) {
             for (const variant of product.variants) {
@@ -312,20 +312,20 @@ export const subscriptionTools = [
                 variantFound = true;
                 productTitle = product.title || 'Unknown Product';
                 variantTitle = variant.title || 'Default Title';
-                
+
                 // Check if product/variant is subscription enabled
-                isSubscriptionEnabled = product.subscription_defaults && 
-                  product.subscription_defaults.storefront_purchase_options && 
-                  (product.subscription_defaults.storefront_purchase_options === 'subscription_only' || 
-                   product.subscription_defaults.storefront_purchase_options === 'subscription_and_onetime');
-                
+                isSubscriptionEnabled = product.subscription_defaults &&
+                  product.subscription_defaults.storefront_purchase_options &&
+                  (product.subscription_defaults.storefront_purchase_options === 'subscription_only' ||
+                    product.subscription_defaults.storefront_purchase_options === 'subscription_and_onetime');
+
                 break;
               }
             }
             if (variantFound) break;
           }
         }
-        
+
         if (!variantFound) {
           return {
             content: [
@@ -337,7 +337,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (!isSubscriptionEnabled) {
           return {
             content: [
@@ -349,18 +349,18 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Variant validation passed: ${productTitle} - ${variantTitle} (ID: ${args.variant_id})`);
         }
-        
+
       } catch (validationError) {
         // If validation fails due to API issues, log warning but continue
         // This prevents validation failures from blocking legitimate subscription creation
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Variant pre-validation failed, continuing with subscription creation:`, validationError.message);
         }
-        
+
         // Only return error if it's a clear validation failure, not an API issue
         if (validationError.message && validationError.message.includes('does not exist')) {
           return {
@@ -374,10 +374,10 @@ export const subscriptionTools = [
           };
         }
       }
-      
+
       try {
         const subscription = await client.createSubscription(subscriptionData, args.customer_id, args.customer_email, args.session_token);
-        
+
         return {
           content: [
             {
@@ -399,7 +399,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (error.message.includes('address')) {
           return {
             content: [
@@ -411,7 +411,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (error.message.includes('frequency') || error.message.includes('interval')) {
           return {
             content: [
@@ -423,7 +423,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (error.message.includes('customer') || error.message.includes('session')) {
           return {
             content: [
@@ -435,7 +435,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         // Re-throw for general error handling
         throw error;
       }
@@ -448,7 +448,7 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       const { subscription_id } = args;
       const subscription = await client.getSubscription(subscription_id, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -466,7 +466,7 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       // Additional business logic validation
       const { subscription_id, order_interval_frequency, order_interval_unit, quantity, variant_id, next_charge_scheduled_at } = args;
-      
+
       // Enhanced frequency validation with detailed error messages
       if (order_interval_frequency !== undefined || order_interval_unit !== undefined) {
         // Both must be provided together
@@ -481,7 +481,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         // Validate frequency is a positive integer
         if (!Number.isInteger(order_interval_frequency) || order_interval_frequency < 1) {
           return {
@@ -494,12 +494,12 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         // Enhanced unit-specific validation with business context
         let isValidFrequency = false;
         let validRange = '';
         let businessReason = '';
-        
+
         switch (order_interval_unit) {
           case 'day':
             isValidFrequency = order_interval_frequency >= 1 && order_interval_frequency <= 90;
@@ -527,7 +527,7 @@ export const subscriptionTools = [
               isError: true,
             };
         }
-        
+
         if (!isValidFrequency) {
           return {
             content: [
@@ -539,15 +539,15 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         // Calculate total days for additional validation
         const totalDays = calculateTotalDays(order_interval_frequency, order_interval_unit);
-        
+
         // Warn about very short frequencies (less than 7 days)
         if (totalDays < 7) {
           console.warn(`[WARNING] Very short subscription frequency (${totalDays} days) may cause billing and fulfillment issues.`);
         }
-        
+
         // Validate maximum total days (365 day business rule)
         if (totalDays > 365) {
           return {
@@ -561,7 +561,7 @@ export const subscriptionTools = [
           };
         }
       }
-      
+
       // Validate quantity if provided
       if (quantity !== undefined) {
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
@@ -576,7 +576,7 @@ export const subscriptionTools = [
           };
         }
       }
-      
+
       // Validate variant_id if provided
       if (variant_id !== undefined) {
         if (!Number.isInteger(variant_id) || variant_id < 1) {
@@ -591,13 +591,13 @@ export const subscriptionTools = [
           };
         }
       }
-      
+
       // Validate next charge date is in the future
       if (next_charge_scheduled_at) {
         const nextChargeDate = new Date(next_charge_scheduled_at);
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Reset time to start of day
-        
+
         if (nextChargeDate < today) {
           return {
             content: [
@@ -610,7 +610,7 @@ export const subscriptionTools = [
           };
         }
       }
-      
+
       const updateData = { ...args };
       delete updateData.subscription_id;
       delete updateData.customer_id;
@@ -618,10 +618,10 @@ export const subscriptionTools = [
       delete updateData.session_token;
       delete updateData.admin_token;
       delete updateData.store_url;
-      
+
       try {
         const updatedSubscription = await client.updateSubscription(subscription_id, updateData, args.customer_id, args.customer_email, args.session_token);
-        
+
         return {
           content: [
             {
@@ -643,7 +643,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (error.message.includes('variant') || error.message.includes('product')) {
           return {
             content: [
@@ -655,7 +655,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         if (error.message.includes('quantity')) {
           return {
             content: [
@@ -667,7 +667,7 @@ export const subscriptionTools = [
             isError: true,
           };
         }
-        
+
         // Re-throw for general error handling
         throw error;
       }
@@ -680,7 +680,7 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       const { subscription_id, date } = args;
       const result = await client.skipSubscription(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -698,7 +698,7 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       const { subscription_id, date } = args;
       const result = await client.unskipSubscription(subscription_id, date, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -723,7 +723,7 @@ export const subscriptionTools = [
       delete swapData.admin_token;
       delete swapData.store_url;
       const swappedSubscription = await client.swapSubscription(subscription_id, swapData, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -748,7 +748,7 @@ export const subscriptionTools = [
       delete cancelData.admin_token;
       delete cancelData.store_url;
       const cancelledSubscription = await client.cancelSubscription(subscription_id, cancelData, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -766,7 +766,7 @@ export const subscriptionTools = [
     execute: async (client, args) => {
       const { subscription_id } = args;
       const activatedSubscription = await client.activateSubscription(subscription_id, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -808,6 +808,109 @@ export const subscriptionTools = [
           {
             type: 'text',
             text: `Subscription address changed:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'skip_gift_subscription_charge',
+    description: 'Gift a subscription by skipping charges for the customer and creating onetime products for the recipient',
+    inputSchema: z.object({
+      customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+      customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+      session_token: z.string().optional().describe('Recharge session token'),
+      admin_token: z.string().optional().describe('Recharge admin token'),
+      store_url: z.string().optional().describe('Store URL'),
+      subscription_ids: z.array(z.string()).min(1).describe('Array of subscription IDs to gift'),
+      recipient_email: z.string().email().describe('Email address of the gift recipient'),
+      recipient_name: z.string().optional().describe('Name of the gift recipient'),
+      message: z.string().optional().describe('Gift message to include'),
+    }),
+    execute: async (client, args) => {
+      const { subscription_ids, recipient_email, recipient_name, message } = args;
+      const data = {
+        recipient_email,
+        ...(recipient_name && { recipient_name }),
+        ...(message && { message })
+      };
+      const result = await client.skipGiftSubscriptionCharge(subscription_ids, data, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Gift subscription created:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'bulk_create_subscriptions',
+    description: 'Create multiple subscriptions in a single request. Each subscription needs address_id, product info, and frequency settings.',
+    inputSchema: z.object({
+      customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+      customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+      session_token: z.string().optional().describe('Recharge session token'),
+      admin_token: z.string().optional().describe('Recharge admin token'),
+      store_url: z.string().optional().describe('Store URL'),
+      subscriptions: z.array(z.object({
+        address_id: z.string().describe('Address ID for the subscription'),
+        external_variant_id: z.string().optional().describe('Shopify variant ID'),
+        external_product_id: z.string().optional().describe('Shopify product ID'),
+        plan_id: z.string().optional().describe('Plan ID to use'),
+        quantity: z.number().min(1).default(1).describe('Quantity'),
+        charge_interval_frequency: z.number().optional().describe('Charge interval frequency'),
+        order_interval_frequency: z.number().optional().describe('Order interval frequency'),
+        order_interval_unit: z.enum(['day', 'week', 'month']).optional().describe('Order interval unit'),
+      })).min(1).describe('Array of subscription objects to create'),
+      allow_onetimes: z.boolean().optional().describe('Whether to allow one-time products'),
+    }),
+    execute: async (client, args) => {
+      const { subscriptions, allow_onetimes } = args;
+      const options = allow_onetimes !== undefined ? { allow_onetimes } : {};
+      const result = await client.createSubscriptions(subscriptions, options, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Bulk subscriptions created:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'bulk_update_subscriptions',
+    description: 'Update multiple subscriptions at once (max 20). All subscriptions must be at the same address.',
+    inputSchema: z.object({
+      customer_id: z.string().optional().describe('Customer ID for automatic session creation'),
+      customer_email: z.string().email().optional().describe('Customer email for automatic lookup'),
+      session_token: z.string().optional().describe('Recharge session token'),
+      admin_token: z.string().optional().describe('Recharge admin token'),
+      store_url: z.string().optional().describe('Store URL'),
+      address_id: z.string().describe('Address ID - all subscriptions must be at this address'),
+      subscriptions: z.array(z.object({
+        id: z.string().describe('Subscription ID to update'),
+        quantity: z.number().min(1).optional().describe('New quantity'),
+        charge_interval_frequency: z.number().optional().describe('New charge interval frequency'),
+        order_interval_frequency: z.number().optional().describe('New order interval frequency'),
+        order_interval_unit: z.enum(['day', 'week', 'month']).optional().describe('New order interval unit'),
+      })).min(1).max(20).describe('Array of subscription updates (max 20)'),
+      allow_onetimes: z.boolean().optional().describe('Whether to allow one-time products'),
+    }),
+    execute: async (client, args) => {
+      const { address_id, subscriptions, allow_onetimes } = args;
+      const options = allow_onetimes !== undefined ? { allow_onetimes } : {};
+      const result = await client.updateSubscriptions(address_id, subscriptions, options, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Bulk subscriptions updated:\n${JSON.stringify(result, null, 2)}`,
           },
         ],
       };

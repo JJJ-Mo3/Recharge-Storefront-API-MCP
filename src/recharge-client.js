@@ -67,7 +67,7 @@ export class RechargeClient {
 
     // Get API URL from environment variable or use production default
     let apiUrl = 'https://api.rechargeapps.com'; // Default to production
-    
+
     if (process.env.RECHARGE_API_URL) {
       const validatedUrl = this.validateApiUrl(process.env.RECHARGE_API_URL);
       if (validatedUrl) {
@@ -128,19 +128,19 @@ export class RechargeClient {
    */
   purgeSessionCache(options = {}) {
     const { all = true, olderThanMinutes, reason = 'manual purge' } = options;
-    
+
     if (process.env.DEBUG === 'true') {
       console.error(`[DEBUG] Purging session cache: ${reason}`);
     }
-    
+
     if (all) {
       const stats = this.sessionCache.getStats();
       this.sessionCache.clearAll();
-      
+
       if (process.env.DEBUG === 'true') {
         console.error(`[DEBUG] Purged ${stats.totalSessions} sessions and ${stats.emailMappings} email mappings`);
       }
-      
+
       return {
         cleared: stats.totalSessions,
         emailMappings: stats.emailMappings,
@@ -148,13 +148,13 @@ export class RechargeClient {
       };
     } else if (olderThanMinutes) {
       const cleared = this.sessionCache.clearExpiredSessions(olderThanMinutes);
-      
+
       return {
         cleared,
         reason: `expired sessions older than ${olderThanMinutes} minutes`
       };
     }
-    
+
     return { cleared: 0, reason: 'no action taken' };
   }
 
@@ -170,7 +170,7 @@ export class RechargeClient {
 
     try {
       const urlObj = new URL(url);
-      
+
       // Only allow HTTPS for security
       if (urlObj.protocol !== 'https:') {
         if (process.env.DEBUG === 'true') {
@@ -178,7 +178,7 @@ export class RechargeClient {
         }
         return null;
       }
-      
+
       // Ensure no path manipulation
       if (urlObj.pathname !== '/' && urlObj.pathname !== '') {
         if (process.env.DEBUG === 'true') {
@@ -186,10 +186,10 @@ export class RechargeClient {
         }
         return null;
       }
-      
+
       // Remove any query parameters or fragments for security
       return `${urlObj.protocol}//${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`;
-      
+
     } catch (error) {
       if (process.env.DEBUG === 'true') {
         console.error(`[DEBUG] Invalid API URL format: ${url}`);
@@ -204,7 +204,7 @@ export class RechargeClient {
   async getOrCreateSessionToken(customerId = null, customerEmail = null) {
     // Auto-purge very old sessions (older than 4 hours) to prevent stale token issues
     this.sessionCache.clearExpiredSessions(240);
-    
+
     // If explicit session token provided, validate and use it
     if (this.sessionToken) {
       const validationResult = this.validateSessionToken(this.sessionToken);
@@ -220,7 +220,7 @@ export class RechargeClient {
     // If customer identification provided, get/create customer session
     if (customerId || customerEmail) {
       let finalCustomerId = customerId;
-      
+
       // Validate customer ID format if provided
       if (finalCustomerId) {
         if (typeof finalCustomerId !== 'string' && typeof finalCustomerId !== 'number') {
@@ -231,21 +231,21 @@ export class RechargeClient {
           throw new Error('Customer ID cannot be empty');
         }
       }
-      
+
       // If only email provided, look up customer ID
       if (!finalCustomerId && customerEmail) {
         // Validate email format
         if (typeof customerEmail !== 'string' || customerEmail.trim() === '') {
           throw new Error('Customer email must be a non-empty string');
         }
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(customerEmail.trim())) {
           throw new Error(`Invalid email format: ${customerEmail}`);
         }
-        
+
         finalCustomerId = this.sessionCache.getCustomerIdByEmail(customerEmail);
-        
+
         if (!finalCustomerId) {
           if (process.env.DEBUG === 'true') {
             console.error(`[DEBUG] Looking up customer ID for email: ${customerEmail}`);
@@ -262,12 +262,12 @@ export class RechargeClient {
           }
         }
       }
-      
+
       // Validate we have a customer ID at this point
       if (!finalCustomerId) {
         throw new Error('Unable to determine customer ID from provided information');
       }
-      
+
       // Check for cached session
       const cachedToken = this.sessionCache.getSessionToken(finalCustomerId);
       if (cachedToken) {
@@ -286,7 +286,7 @@ export class RechargeClient {
           this.sessionCache.clearSession(finalCustomerId);
         }
       }
-      
+
       // Create new session with validation
       return await this.createAndValidateSession(finalCustomerId, customerEmail);
     }
@@ -311,22 +311,22 @@ export class RechargeClient {
    */
   async createAndValidateSession(customerId, customerEmail = null) {
     const MAX_SESSION_ATTEMPTS = 3;
-    
+
     for (let attempt = 1; attempt <= MAX_SESSION_ATTEMPTS; attempt++) {
       try {
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Creating new session for customer ${customerId} (attempt ${attempt}/${MAX_SESSION_ATTEMPTS})`);
         }
-        
+
         const session = await this.createCustomerSessionById(customerId);
         const newToken = session.apiToken;
-        
+
         // Validate the new token
         const validationResult = this.validateSessionToken(newToken);
         if (!validationResult.isValid) {
           throw new Error(`Session creation returned invalid token: ${validationResult.reason}`);
         }
-        
+
         // Verify token is different from any previously cached token
         const previousToken = this.sessionCache.getSessionToken(customerId);
         if (previousToken === newToken) {
@@ -341,24 +341,24 @@ export class RechargeClient {
             throw new Error('Session creation returned same token as expired session');
           }
         }
-        
+
         // Cache the new session
         this.sessionCache.setSessionToken(customerId, newToken, customerEmail);
-        
+
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Successfully created and cached new session for customer ${customerId}`);
         }
-        
+
         return newToken;
       } catch (error) {
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Session creation attempt ${attempt} failed for customer ${customerId}:`, error.message);
         }
-        
+
         if (attempt === MAX_SESSION_ATTEMPTS) {
           throw new Error(`Session creation failed after ${MAX_SESSION_ATTEMPTS} attempts: ${error.message}`);
         }
-        
+
         // Wait before retry with exponential backoff
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -438,20 +438,20 @@ export class RechargeClient {
     if (!token) {
       return { isValid: false, reason: 'Token is null or undefined' };
     }
-    
+
     if (typeof token !== 'string') {
       return { isValid: false, reason: 'Token must be a string' };
     }
-    
+
     const trimmedToken = token.trim();
     if (trimmedToken === '') {
       return { isValid: false, reason: 'Token cannot be empty' };
     }
-    
+
     if (trimmedToken.length < 10) {
       return { isValid: false, reason: 'Token appears too short (less than 10 characters)' };
     }
-    
+
     // Check for obviously invalid tokens
     const invalidTokens = [
       'undefined',
@@ -460,17 +460,17 @@ export class RechargeClient {
       'st_example',
       'test_token'
     ];
-    
+
     if (invalidTokens.includes(trimmedToken.toLowerCase())) {
       return { isValid: false, reason: 'Token appears to be a placeholder or test value' };
     }
-    
+
     // Basic format validation - session tokens typically have specific patterns
     // This is a loose validation to catch obvious issues without being too restrictive
     if (!/^[a-zA-Z0-9_\-\.]+$/.test(trimmedToken)) {
       return { isValid: false, reason: 'Token contains invalid characters' };
     }
-    
+
     return { isValid: true, reason: null };
   }
 
@@ -502,26 +502,26 @@ export class RechargeClient {
    */
   async makeRequestWithRetry(method, endpoint, data = null, params = null, customerId = null, customerEmail = null, sessionToken = null, retryCount = 0) {
     const MAX_RETRIES = 2;
-    
+
     // Validate method
     if (!method || typeof method !== 'string') {
       throw new Error('HTTP method is required');
     }
-    
+
     const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
     if (!validMethods.includes(method.toUpperCase())) {
       throw new Error(`Invalid HTTP method: ${method}`);
     }
-    
+
     // Validate endpoint
     if (!endpoint || typeof endpoint !== 'string') {
       throw new Error('API endpoint is required');
     }
-    
+
     if (!endpoint.startsWith('/')) {
       throw new Error('API endpoint must start with /');
     }
-    
+
     try {
       sessionToken = sessionToken || await this.getOrCreateSessionToken(customerId, customerEmail);
     } catch (error) {
@@ -530,7 +530,7 @@ export class RechargeClient {
       }
       throw error;
     }
-    
+
     const config = {
       method: method.toUpperCase(),
       url: endpoint,
@@ -539,40 +539,40 @@ export class RechargeClient {
         'X-Recharge-Version': '2021-11',
       },
     };
-    
+
     if (data) {
       config.data = data;
     }
-    
+
     if (params) {
       config.params = params;
     }
-    
+
     try {
       const response = await this.storefrontApi.request(config);
-      
+
       if (!response || !response.data) {
         throw new Error('Invalid response from API');
       }
-      
+
       return response.data;
     } catch (error) {
       // Handle session expiry - detect various expiry indicators and retry with backoff
       const isSessionExpired = this.isSessionExpiredError(error);
       const canRetry = (customerId || customerEmail) && retryCount < MAX_RETRIES;
-      
+
       if (isSessionExpired && canRetry) {
         if (process.env.DEBUG === 'true') {
           console.error(`[DEBUG] Session expired (attempt ${retryCount + 1}/${MAX_RETRIES + 1}), clearing cache and retrying`);
         }
-        
+
         // Clear the expired session atomically
         await this.clearExpiredSession(customerId, customerEmail, sessionToken);
-        
+
         // Add exponential backoff delay
         const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
         await new Promise(resolve => setTimeout(resolve, delay));
-        
+
         // Retry with incremented count
         try {
           return await this.makeRequestWithRetry(method, endpoint, data, params, customerId, customerEmail, null, retryCount + 1);
@@ -580,7 +580,7 @@ export class RechargeClient {
           if (process.env.DEBUG === 'true') {
             console.error(`[DEBUG] Session retry ${retryCount + 1} failed:`, retryError.message);
           }
-          
+
           // If this was the last retry, provide enhanced error context
           if (retryCount >= MAX_RETRIES - 1) {
             const enhancedError = new Error(
@@ -592,11 +592,11 @@ export class RechargeClient {
             enhancedError.retryCount = retryCount + 1;
             throw enhancedError;
           }
-          
+
           throw retryError;
         }
       }
-      
+
       handleAPIError(error);
     }
   }
@@ -608,15 +608,15 @@ export class RechargeClient {
     if (!error.response) {
       return false;
     }
-    
+
     const status = error.response.status;
     const data = error.response.data;
-    
+
     // Check for various session expiry indicators
     if (status === 401) {
       return true; // Unauthorized - classic session expiry
     }
-    
+
     if (status === 403) {
       // Forbidden - could be expired session or insufficient permissions
       // Check error message for session-related keywords
@@ -624,13 +624,13 @@ export class RechargeClient {
       const sessionKeywords = ['session', 'token', 'expired', 'invalid', 'unauthorized'];
       return sessionKeywords.some(keyword => message.includes(keyword));
     }
-    
+
     if (status === 422) {
       // Unprocessable Entity - sometimes used for expired tokens
       const message = (data?.message || data?.error || '').toLowerCase();
       return message.includes('token') || message.includes('session') || message.includes('expired');
     }
-    
+
     return false;
   }
 
@@ -644,7 +644,7 @@ export class RechargeClient {
       if (!finalCustomerId && customerEmail) {
         finalCustomerId = this.sessionCache.getCustomerIdByEmail(customerEmail);
       }
-      
+
       if (finalCustomerId) {
         // Verify we're clearing the right session by checking token match
         const cachedToken = this.sessionCache.getSessionToken(finalCustomerId);
@@ -659,7 +659,7 @@ export class RechargeClient {
           }
         }
       }
-      
+
       // Also clear email mapping if provided
       if (customerEmail) {
         const emailCustomerId = this.sessionCache.getCustomerIdByEmail(customerEmail);
@@ -667,7 +667,7 @@ export class RechargeClient {
           this.sessionCache.clearSessionByEmail(customerEmail);
         }
       }
-      
+
     } catch (error) {
       if (process.env.DEBUG === 'true') {
         console.error(`[DEBUG] Error clearing expired session:`, error.message);
@@ -690,17 +690,17 @@ export class RechargeClient {
     if (!method || typeof method !== 'string') {
       throw new Error('HTTP method is required');
     }
-    
+
     const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
     if (!validMethods.includes(method.toUpperCase())) {
       throw new Error(`Invalid HTTP method: ${method}`);
     }
-    
+
     // Validate endpoint
     if (!endpoint || typeof endpoint !== 'string') {
       throw new Error('API endpoint is required');
     }
-    
+
     if (!endpoint.startsWith('/')) {
       throw new Error('API endpoint must start with /');
     }
@@ -713,22 +713,22 @@ export class RechargeClient {
         'X-Recharge-Version': '2021-11',
       },
     };
-    
+
     if (data) {
       config.data = data;
     }
-    
+
     if (params) {
       config.params = params;
     }
-    
+
     try {
       const response = await this.adminApi.request(config);
-      
+
       if (!response || !response.data) {
         throw new Error('Invalid response from Admin API');
       }
-      
+
       return response.data;
     } catch (error) {
       handleAPIError(error);
@@ -759,20 +759,20 @@ export class RechargeClient {
 
     try {
       const response = await this.makeAdminRequest('GET', '/customers', null, { email: email.trim() });
-      
+
       if (!response || !response.customers || !Array.isArray(response.customers)) {
         throw new Error('Invalid response format from customer lookup API');
       }
-      
+
       if (response.customers.length === 0) {
         throw new Error(`Customer not found with email: ${email}`);
       }
-      
+
       const customer = response.customers[0];
       if (!customer || !customer.id) {
         throw new Error('Customer data is incomplete - missing ID');
       }
-      
+
       return customer;
     } catch (error) {
       if (process.env.DEBUG === 'true') {
@@ -797,11 +797,11 @@ export class RechargeClient {
 
     try {
       const response = await this.makeAdminRequest('POST', `/customers/${customerId}/sessions`, sessionData);
-      
+
       if (!response || !response.customer_session) {
         throw new Error('Invalid response from session creation API');
       }
-      
+
       return response.customer_session;
     } catch (error) {
       if (process.env.DEBUG === 'true') {
@@ -1074,29 +1074,258 @@ export class RechargeClient {
     return await this.makeRequest('DELETE', `/bundle_selections/${bundleSelectionId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  // Discount Management Methods
-  async getDiscounts(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
-    return await this.makeRequest('GET', '/discounts', null, params, customerId, customerEmail, sessionToken);
+  // NOTE: Direct discount endpoints (/discounts, /discounts/{id}) do not exist in the Storefront API.
+  // Discounts are managed via address-specific and charge-specific endpoints:
+  // - POST /addresses/{id}/apply_discount (used by apply_discount_to_address tool)
+  // - POST /addresses/{id}/remove_discount (used by remove_discount_from_address tool)
+  // - POST /charges/{id}/apply_discount (used by apply_discount_to_charge tool)
+  // - POST /charges/{id}/remove_discount (used by remove_discount_from_charge tool)
+
+  // Plan Management Methods
+  async listPlans(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/plans', null, params, customerId, customerEmail, sessionToken);
   }
 
-  async getDiscount(discountId, customerId = null, customerEmail = null, sessionToken = null) {
-    if (!discountId) {
-      throw new Error('Discount ID is required');
+  async getPlan(planId, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!planId) {
+      throw new Error('Plan ID is required');
     }
-    return await this.makeRequest('GET', `/discounts/${discountId}`, null, null, customerId, customerEmail, sessionToken);
+    return await this.makeRequest('GET', `/plans/${planId}`, null, null, customerId, customerEmail, sessionToken);
   }
 
-  async applyDiscount(discountCode, customerId = null, customerEmail = null, sessionToken = null) {
-    if (!discountCode || typeof discountCode !== 'string' || discountCode.trim() === '') {
-      throw new Error('Discount code is required');
+  // Product Search Method
+  async productSearch(query, params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!query || typeof query !== 'string' || query.trim() === '') {
+      throw new Error('Search query is required');
     }
-    return await this.makeRequest('POST', '/discounts', { discount_code: discountCode.trim() }, null, customerId, customerEmail, sessionToken);
+    const searchParams = { query: query.trim(), ...params };
+    return await this.makeRequest('GET', '/products/search', null, searchParams, customerId, customerEmail, sessionToken);
   }
 
-  async removeDiscount(discountId, customerId = null, customerEmail = null, sessionToken = null) {
-    if (!discountId) {
-      throw new Error('Discount ID is required');
+  // Customer Delivery Schedule Method 
+  async getDeliverySchedule(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/customers/delivery_schedule', null, params, customerId, customerEmail, sessionToken);
+  }
+
+  // Missing Subscription Methods - Bulk Operations
+  async skipGiftSubscriptionCharge(subscriptionIds, data = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!subscriptionIds || !Array.isArray(subscriptionIds) || subscriptionIds.length === 0) {
+      throw new Error('Subscription IDs array is required');
     }
-    return await this.makeRequest('DELETE', `/discounts/${discountId}`, null, null, customerId, customerEmail, sessionToken);
+    return await this.makeRequest('POST', '/subscriptions/skip_gift', { subscription_ids: subscriptionIds, ...data }, null, customerId, customerEmail, sessionToken);
+  }
+
+  async createSubscriptions(subscriptions = [], options = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!subscriptions || !Array.isArray(subscriptions) || subscriptions.length === 0) {
+      throw new Error('Subscriptions array is required');
+    }
+    return await this.makeRequest('POST', '/subscriptions/bulk', { subscriptions, ...options }, null, customerId, customerEmail, sessionToken);
+  }
+
+  async updateSubscriptions(addressId, subscriptions = [], options = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!addressId) {
+      throw new Error('Address ID is required');
+    }
+    if (!subscriptions || !Array.isArray(subscriptions) || subscriptions.length === 0) {
+      throw new Error('Subscriptions array is required');
+    }
+    if (subscriptions.length > 20) {
+      throw new Error('Maximum 20 subscriptions can be updated at once');
+    }
+    return await this.makeRequest('PUT', `/addresses/${addressId}/subscriptions/bulk`, { subscriptions, ...options }, null, customerId, customerEmail, sessionToken);
+  }
+
+  // Authentication Methods
+  async loginShopifyAppProxy() {
+    // App Proxy context - session is obtained from Shopify context
+    const response = await this.storefrontApi.post('/sessions', {}, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data;
+  }
+
+  async loginWithShopifyStorefront(shopifyStorefrontToken, shopifyCustomerAccessToken = null) {
+    if (!shopifyStorefrontToken) {
+      throw new Error('Shopify Storefront token is required');
+    }
+    const data = {
+      shopify_storefront_token: shopifyStorefrontToken,
+      ...(shopifyCustomerAccessToken && { shopify_customer_access_token: shopifyCustomerAccessToken }),
+    };
+    const response = await this.storefrontApi.post('/sessions', data, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data;
+  }
+
+  async loginWithShopifyCustomerAccount(shopifyCustomerAccessToken) {
+    if (!shopifyCustomerAccessToken) {
+      throw new Error('Shopify Customer Access Token is required');
+    }
+    const response = await this.storefrontApi.post('/sessions', {
+      shopify_customer_access_token: shopifyCustomerAccessToken,
+    }, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data;
+  }
+
+  async sendPasswordlessCode(email, options = {}) {
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      throw new Error('Email is required');
+    }
+    const response = await this.storefrontApi.post('/passwordless/send-code', {
+      email: email.trim(),
+      ...options,
+    }, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data.session_token || response.data;
+  }
+
+  async validatePasswordlessCode(email, sessionToken, code) {
+    if (!email || !sessionToken || !code) {
+      throw new Error('Email, session token, and code are required');
+    }
+    const response = await this.storefrontApi.post('/passwordless/validate-code', {
+      email: email.trim(),
+      session_token: sessionToken,
+      code: code.trim(),
+    }, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data;
+  }
+
+  async sendPasswordlessCodeAppProxy(email, options = {}) {
+    // Same as sendPasswordlessCode but routed through App Proxy
+    return this.sendPasswordlessCode(email, options);
+  }
+
+  async validatePasswordlessCodeAppProxy(email, sessionToken, code) {
+    // Same as validatePasswordlessCode but routed through App Proxy
+    return this.validatePasswordlessCode(email, sessionToken, code);
+  }
+
+  async loginCustomerPortal() {
+    // Customer Portal context - session obtained from portal environment
+    const response = await this.storefrontApi.post('/sessions/portal', {}, {
+      headers: {
+        'X-Recharge-Access-Token': this.storefrontAccessToken,
+        'X-Recharge-Version': '2021-11',
+      },
+    });
+    return response.data;
+  }
+
+  // Collection Methods
+  async listCollections(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/collections', null, params, customerId, customerEmail, sessionToken);
+  }
+
+  async getCollection(collectionId, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!collectionId) {
+      throw new Error('Collection ID is required');
+    }
+    return await this.makeRequest('GET', `/collections/${collectionId}`, null, null, customerId, customerEmail, sessionToken);
+  }
+
+  async listCollectionProducts(collectionId, params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!collectionId) {
+      throw new Error('Collection ID is required');
+    }
+    return await this.makeRequest('GET', `/collections/${collectionId}/products`, null, params, customerId, customerEmail, sessionToken);
+  }
+
+  // Credit Methods
+  async getCreditSummary(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/credits/summary', null, params, customerId, customerEmail, sessionToken);
+  }
+
+  async setApplyCreditsToNextCharge(data, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('POST', '/credits/apply_to_next_charge', data, null, customerId, customerEmail, sessionToken);
+  }
+
+  async listCreditAccounts(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/credit_accounts', null, params, customerId, customerEmail, sessionToken);
+  }
+
+  // Gift Methods
+  async listGiftPurchases(customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/gift_purchases', null, null, customerId, customerEmail, sessionToken);
+  }
+
+  async getGiftPurchase(giftId, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!giftId) {
+      throw new Error('Gift ID is required');
+    }
+    return await this.makeRequest('GET', `/gift_purchases/${giftId}`, null, null, customerId, customerEmail, sessionToken);
+  }
+
+  // Metafield Methods
+  async createMetafield(data, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!data.key || !data.namespace || !data.owner_id || !data.owner_resource) {
+      throw new Error('Key, namespace, owner_id, and owner_resource are required');
+    }
+    return await this.makeRequest('POST', '/metafields', data, null, customerId, customerEmail, sessionToken);
+  }
+
+  async updateMetafield(metafieldId, data, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!metafieldId) {
+      throw new Error('Metafield ID is required');
+    }
+    return await this.makeRequest('PUT', `/metafields/${metafieldId}`, data, null, customerId, customerEmail, sessionToken);
+  }
+
+  async deleteMetafield(metafieldId, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!metafieldId) {
+      throw new Error('Metafield ID is required');
+    }
+    return await this.makeRequest('DELETE', `/metafields/${metafieldId}`, null, null, customerId, customerEmail, sessionToken);
+  }
+
+  // Customer Portal Access Methods
+  async getCustomerPortalAccess(params = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/customers/portal_access', null, params, customerId, customerEmail, sessionToken);
+  }
+
+  async getActiveChurnLandingPageURL(subscriptionId, redirectUrl, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!subscriptionId || !redirectUrl) {
+      throw new Error('Subscription ID and redirect URL are required');
+    }
+    return await this.makeRequest('GET', `/customers/churn_landing_page/${subscriptionId}`, null, { redirect_url: redirectUrl }, customerId, customerEmail, sessionToken);
+  }
+
+  async getFailedPaymentMethodRecoveryLandingPageURL(customerId = null, customerEmail = null, sessionToken = null) {
+    return await this.makeRequest('GET', '/customers/payment_recovery_landing_page', null, null, customerId, customerEmail, sessionToken);
+  }
+
+  async getGiftRedemptionLandingPageURL(giftId, redirectUrl, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!giftId || !redirectUrl) {
+      throw new Error('Gift ID and redirect URL are required');
+    }
+    return await this.makeRequest('GET', `/customers/gift_redemption_landing_page/${giftId}`, null, { redirect_url: redirectUrl }, customerId, customerEmail, sessionToken);
+  }
+
+  async sendCustomerNotification(notificationType, options = {}, customerId = null, customerEmail = null, sessionToken = null) {
+    if (!notificationType) {
+      throw new Error('Notification type is required');
+    }
+    return await this.makeRequest('POST', '/customers/notifications', { notification_type: notificationType, ...options }, null, customerId, customerEmail, sessionToken);
   }
 }

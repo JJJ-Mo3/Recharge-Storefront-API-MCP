@@ -45,7 +45,7 @@ export const productTools = [
       delete params.admin_token;
       delete params.store_url;
       const products = await client.getProducts(params, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
@@ -63,12 +63,34 @@ export const productTools = [
     execute: async (client, args) => {
       const { product_id } = args;
       const product = await client.getProduct(product_id, args.customer_id, args.customer_email, args.session_token);
-      
+
       return {
         content: [
           {
             type: 'text',
             text: `Product Details:\n${JSON.stringify(product, null, 2)}`,
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'search_products',
+    description: 'Search for products using a query string. Useful for finding products by name, title, or other attributes.',
+    inputSchema: baseSchema.extend({
+      query: z.string().describe('Search query string'),
+      limit: z.number().max(250).default(50).optional().describe('Number of results to return'),
+    }),
+    execute: async (client, args) => {
+      const { query, limit } = args;
+      const params = limit ? { limit } : {};
+      const products = await client.productSearch(query, params, args.customer_id, args.customer_email, args.session_token);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Search Results for "${query}":\n${JSON.stringify(products, null, 2)}`,
           },
         ],
       };

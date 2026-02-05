@@ -35,7 +35,7 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 
 ### Key Benefits
 
-- **Complete API Coverage**: All 59 Recharge Storefront API endpoints
+- **Complete API Coverage**: All 86 Recharge Storefront API endpoints
 - **Intelligent Authentication**: Automatic session management with multi-customer support
 - **Production Ready**: Error handling, logging, and monitoring
 - **Developer Friendly**: Comprehensive documentation, examples, and debugging tools
@@ -48,17 +48,22 @@ Model Context Protocol (MCP) is a standardized way for AI assistants to interact
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Customer Management** | 4 tools | Profile management, lookup, and session creation |
-| **Subscription Lifecycle** | 11 tools | Create, update, cancel, skip, swap, activate, and change address |
+| **Customer Management** | 10 tools | Profile, portal access, notifications, churn/recovery URLs |
+| **Subscription Lifecycle** | 14 tools | Create, update, cancel, skip, swap, activate, bulk operations, gifting |
 | **Address Management** | 9 tools | Full CRUD, discounts, merge, and charge skipping |
 | **Payment Methods** | 3 tools | View and update payment information |
-| **Product Catalog** | 2 tools | Browse subscription products and variants |
+| **Product Catalog** | 4 tools | Browse, search, and view subscription products |
+| **Collections** | 3 tools | Browse store collections and collection products |
+| **Plan Management** | 2 tools | View subscription plans and plan details |
 | **Order Management** | 2 tools | View order history and tracking |
 | **Charge Management** | 8 tools | Skip, process, reschedule, and manage discounts |
 | **One-time Products** | 5 tools | Add products to upcoming deliveries |
 | **Bundle Management** | 7 tools | Product bundle and selection management |
-| **Discount System** | 4 tools | Apply and manage discount codes |
-| **Utilities** | 4 tools | Session cache, store settings, and shipping countries |
+| **Credits** | 3 tools | Credit summary, auto-apply settings, credit accounts |
+| **Gifts** | 2 tools | Gift purchases and redemption |
+| **Metafields** | 3 tools | Create, update, delete resource metafields |
+| **Authentication** | 8 tools | Shopify login, passwordless auth, customer portal |
+| **Utilities** | 2 tools | Session cache management |
 
 ### Advanced Features
 
@@ -684,7 +689,7 @@ DEBUG=true npm start
 
 ## Available Tools
 
-### Customer Management (4 tools)
+### Customer Management (10 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -692,8 +697,14 @@ DEBUG=true npm start
 | `update_customer` | Update customer profile | `email`, `first_name`, `last_name`, `phone` |
 | `get_customer_by_email` | Find customer by email (returns ID) | `email` |
 | `create_customer_session_by_id` | Create session manually | `customer_id`, `return_url` |
+| `get_delivery_schedule` | Get upcoming delivery schedule | `limit` |
+| `get_customer_portal_access` | Get portal access URL | `page_destination` |
+| `get_churn_landing_page_url` | Get cancellation landing page URL | `subscription_id`, `redirect_url` |
+| `get_payment_recovery_url` | Get failed payment recovery URL | - |
+| `get_gift_redemption_url` | Get gift redemption landing page | `gift_id`, `redirect_url` |
+| `send_customer_notification` | Send notification to customer | `notification_type`, `address_id` |
 
-### Subscription Management (11 tools)
+### Subscription Management (14 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -708,6 +719,9 @@ DEBUG=true npm start
 | `activate_subscription` | Reactivate subscription | `subscription_id` |
 | `set_subscription_next_charge_date` | Set next charge date | `subscription_id`, `date` |
 | `change_subscription_address` | Move subscription to different address | `subscription_id`, `address_id` |
+| `skip_gift_subscription_charge` | Gift subscription to recipient | `subscription_ids`, `recipient_email` |
+| `bulk_create_subscriptions` | Create multiple subscriptions | `subscriptions[]` |
+| `bulk_update_subscriptions` | Update multiple subscriptions (max 20) | `address_id`, `subscriptions[]` |
 
 ### Address Management (9 tools)
 
@@ -731,12 +745,20 @@ DEBUG=true npm start
 | `get_payment_method` | Get payment details | `payment_method_id` |
 | `update_payment_method` | Update billing info | `payment_method_id`, billing fields |
 
-### Product Catalog (2 tools)
+### Product Catalog (3 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `get_products` | Browse available products | `limit`, `handle` |
 | `get_product` | Get product details | `product_id` |
+| `search_products` | Search products by query | `query`, `limit` |
+
+### Plan Management (2 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_plans` | List subscription plans | `limit`, `external_product_id` |
+| `get_plan` | Get plan details | `plan_id` |
 
 ### Order History (2 tools)
 
@@ -780,23 +802,56 @@ DEBUG=true npm start
 | `update_bundle_selection` | Update selection | `bundle_selection_id`, update fields |
 | `delete_bundle_selection` | Remove selection | `bundle_selection_id` |
 
-### Discount Management (4 tools)
+### Authentication (8 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| `get_discounts` | List applied discounts | - |
-| `get_discount` | Get discount details | `discount_id` |
-| `apply_discount` | Apply discount code | `discount_code` |
-| `remove_discount` | Remove discount | `discount_id` |
+| `login_shopify_app_proxy` | Login via Shopify App Proxy | - |
+| `login_with_shopify_storefront` | Login via Shopify Storefront API | `shopify_storefront_token` |
+| `login_with_shopify_customer_account` | Login via Shopify Customer Account | `shopify_customer_access_token` |
+| `send_passwordless_code` | Send passwordless login code | `email`, `send_email`, `send_sms` |
+| `validate_passwordless_code` | Validate passwordless code | `email`, `session_token`, `code` |
+| `send_passwordless_code_app_proxy` | Passwordless via App Proxy | `email` |
+| `validate_passwordless_code_app_proxy` | Validate via App Proxy | `email`, `session_token`, `code` |
+| `login_customer_portal` | Login from Customer Portal | - |
 
-### Utility Tools (4 tools)
+### Utility Tools (2 tools)
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `purge_session_cache` | Clear cached session tokens | `all`, `older_than_minutes`, `reason` |
 | `get_session_cache_stats` | View cache statistics | - |
-| `get_shipping_countries` | Get list of countries store ships to | - |
-| `get_store_settings` | Get store configuration and settings | - |
+
+### Collections (3 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_collections` | List product collections | `limit`, `sort_by`, `cursor` |
+| `get_collection` | Get collection details | `collection_id` |
+| `get_collection_products` | Get products in collection | `collection_id`, `format_version` |
+
+### Credits (3 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_credit_summary` | Get customer credit balance | `include` |
+| `set_apply_credits` | Enable/disable auto-apply credits | `recurring` |
+| `get_credit_accounts` | List credit accounts | `limit`, `sort_by`, `cursor` |
+
+### Gifts (2 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_gift_purchases` | List gifts available to customer | - |
+| `get_gift_purchase` | Get gift details | `gift_id` |
+
+### Metafields (3 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `create_metafield` | Create metafield on resource | `key`, `namespace`, `owner_id`, `owner_resource`, `value` |
+| `update_metafield` | Update existing metafield | `metafield_id`, `value`, `description` |
+| `delete_metafield` | Delete metafield | `metafield_id` |
 
 ## Usage Examples
 
